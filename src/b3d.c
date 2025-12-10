@@ -18,6 +18,31 @@ static b3d_vec_t b3d_camera;
 static b3d_mat_t b3d_matrix_stack[B3D_MATRIX_STACK_SIZE];
 static int b3d_matrix_stack_top = 0;
 
+/* Cached screen-space clipping planes (updated when resolution changes) */
+static b3d_vec_t b3d_screen_planes[4][2];
+static int b3d_planes_cached_w = 0, b3d_planes_cached_h = 0;
+
+static void b3d_update_screen_planes(void)
+{
+    if (b3d_planes_cached_w == b3d_width && b3d_planes_cached_h == b3d_height)
+        return;
+    /* Top edge */
+    b3d_screen_planes[0][0] = (b3d_vec_t){0, 0.5f, 0, 1};
+    b3d_screen_planes[0][1] = (b3d_vec_t){0, 1, 0, 1};
+    /* Bottom edge */
+    b3d_screen_planes[1][0] = (b3d_vec_t){0, (float)b3d_height, 0, 1};
+    b3d_screen_planes[1][1] = (b3d_vec_t){0, -1, 0, 1};
+    /* Left edge */
+    b3d_screen_planes[2][0] = (b3d_vec_t){0.5f, 0, 0, 1};
+    b3d_screen_planes[2][1] = (b3d_vec_t){1, 0, 0, 1};
+    /* Right edge */
+    b3d_screen_planes[3][0] = (b3d_vec_t){(float)b3d_width, 0, 0, 1};
+    b3d_screen_planes[3][1] = (b3d_vec_t){-1, 0, 0, 1};
+
+    b3d_planes_cached_w = b3d_width;
+    b3d_planes_cached_h = b3d_height;
+}
+
 /* Internal rasterization function */
 static void b3d_rasterise(float ax, float ay, float az,
                           float bx, float by, float bz,
@@ -187,16 +212,11 @@ int b3d_triangle(float ax, float ay, float az,
         if (src_count < B3D_CLIP_BUFFER_SIZE)
             src[src_count++] = t;
     }
-    b3d_vec_t planes[4][2] = {
-        {{0, 0.5f, 0, 1}, {0, 1, 0, 1}},
-        {{0, (float)b3d_height, 0, 1}, {0, -1, 0, 1}},
-        {{0.5f, 0, 0, 1}, {1, 0, 0, 1}},
-        {{(float)b3d_width, 0, 0, 1}, {-1, 0, 0, 1}}
-    };
     for (int p = 0; p < 4; ++p) {
         int dst_count = 0;
         for (int i = 0; i < src_count; ++i) {
-            int n = b3d_clip_against_plane(planes[p][0], planes[p][1], src[i], clipped);
+            int n = b3d_clip_against_plane(b3d_screen_planes[p][0],
+                                           b3d_screen_planes[p][1], src[i], clipped);
             for (int w = 0; w < n; ++w) {
                 if (dst_count < B3D_CLIP_BUFFER_SIZE)
                     dst[dst_count++] = clipped[w];
@@ -304,6 +324,7 @@ void b3d_init(uint32_t *pixel_buffer, float *depth_buffer, int w, int h, float f
     b3d_height = h;
     b3d_pixels = pixel_buffer;
     b3d_depth = depth_buffer;
+    b3d_update_screen_planes();
     b3d_clear();
     b3d_reset();
     b3d_proj = b3d_mat_proj(fov, b3d_height / (float)b3d_width,

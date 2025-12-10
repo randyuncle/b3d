@@ -163,8 +163,23 @@ static inline b3d_mat_t b3d_mat_proj(float fov, float aspect, float near, float 
     }};
 }
 
+static inline int b3d_mat_is_identity(b3d_mat_t m)
+{
+    return m.m[0][0] == 1.0f && m.m[1][1] == 1.0f &&
+           m.m[2][2] == 1.0f && m.m[3][3] == 1.0f &&
+           m.m[0][1] == 0.0f && m.m[0][2] == 0.0f && m.m[0][3] == 0.0f &&
+           m.m[1][0] == 0.0f && m.m[1][2] == 0.0f && m.m[1][3] == 0.0f &&
+           m.m[2][0] == 0.0f && m.m[2][1] == 0.0f && m.m[2][3] == 0.0f &&
+           m.m[3][0] == 0.0f && m.m[3][1] == 0.0f && m.m[3][2] == 0.0f;
+}
+
 static inline b3d_mat_t b3d_mat_mul(b3d_mat_t a, b3d_mat_t b)
 {
+    if (b3d_mat_is_identity(b))
+        return a;
+    if (b3d_mat_is_identity(a))
+        return b;
+
     b3d_mat_t matrix = {{{0}}};
     for (int c = 0; c < 4; c++) {
         for (int r = 0; r < 4; r++) {
