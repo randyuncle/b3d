@@ -11,6 +11,12 @@
 /* Constants */
 #define B3D_NEAR_DISTANCE 0.1f
 #define B3D_FAR_DISTANCE 100.0f
+#define B3D_EPSILON 1e-8f           /* Near-zero threshold for division guards */
+#define B3D_DEGEN_THRESHOLD 0.0001f /* Degenerate triangle/scanline threshold */
+#define B3D_CULL_THRESHOLD 0.01f    /* Back-face culling dot product threshold */
+#define B3D_DEPTH_FAR 1e30f         /* Depth buffer clear value (far plane) */
+#define B3D_PI 3.1415926536f        /* Pi constant for angle conversions */
+#define B3D_CLIP_BUFFER_SIZE 32     /* Maximum triangles in clipping buffer */
 
 /* Internal types */
 typedef struct {
@@ -69,7 +75,7 @@ static inline b3d_vec_t b3d_vec_cross(b3d_vec_t a, b3d_vec_t b)
 static inline b3d_vec_t b3d_vec_norm(b3d_vec_t v)
 {
     float l = b3d_vec_length(v);
-    if (l < 1e-8f)
+    if (l < B3D_EPSILON)
         return (b3d_vec_t){0, 0, 0, 1};
     return (b3d_vec_t){v.x / l, v.y / l, v.z / l, 1};
 }
@@ -146,7 +152,7 @@ static inline b3d_mat_t b3d_mat_scale(float x, float y, float z)
 
 static inline b3d_mat_t b3d_mat_proj(float fov, float aspect, float near, float far)
 {
-    fov = 1.0f / tanf(fov * 0.5f / 180.0f * 3.1415926536f);
+    fov = 1.0f / tanf(fov * 0.5f / 180.0f * B3D_PI);
     return (b3d_mat_t){{
         [0][0] = aspect * fov,
         [1][1] = fov,
@@ -217,7 +223,7 @@ static inline b3d_vec_t b3d_intersect_plane(b3d_vec_t norm, float plane_d,
     float ad = b3d_vec_dot(start, norm);
     float bd = b3d_vec_dot(end, norm);
     float denom = bd - ad;
-    if (fabsf(denom) < 1e-8f)
+    if (fabsf(denom) < B3D_EPSILON)
         return start;
     float t = (plane_d - ad) / denom;
     if (t < 0.0f)

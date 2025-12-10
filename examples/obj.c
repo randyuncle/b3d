@@ -9,6 +9,7 @@
 
 #include "SDL.h"
 #include "b3d.h"
+#include "b3d_obj.h"
 
 int main(int argument_count, char ** arguments) {
     int width = 800;
@@ -23,103 +24,33 @@ int main(int argument_count, char ** arguments) {
     float * depth = malloc(width * height * sizeof(depth[0]));
     b3d_init(pixels, depth, width, height, 70);
 
-    // Barebones .obj file loader with security improvements.
-    char * file_name = "assets/moai.obj";
+    /* Load OBJ file */
+    const char * file_name = "assets/moai.obj";
     if (argument_count == 2) file_name = arguments[1];
-    int vert_count = 0;
-    float * triangles = NULL;
-    {
-        int vi = 0, ti = 0;
-        float * vertices = NULL;
-        FILE * obj_file = fopen(file_name, "r");
-        if (!obj_file) {
-            printf("Failed to load file '%s'.\n", file_name);
-            exit(1);
-        }
-        char line[1024];
-        float x, y, z;
-        while (fgets(line, sizeof(line), obj_file)) {
-            if (line[0] == 'v' && sscanf(line, " v %f %f %f ", &x, &y, &z) == 3) {
-                float * temp = realloc(vertices, (vi+3) * sizeof(vertices[0]));
-                if (!temp) {
-                    printf("Memory allocation failed.\n");
-                    fclose(obj_file);
-                    free(vertices);
-                    exit(1);
-                }
-                vertices = temp;
-                vertices[vi++] = x;
-                vertices[vi++] = y;
-                vertices[vi++] = z;
-            }
-        }
-        rewind(obj_file);
-        int a, b, c;
-        while (fgets(line, sizeof(line), obj_file)) {
-            if (line[0] == 'f') {
-                // Erase texture and normal information.
-                for (size_t i = 0; i < sizeof(line) && line[i] != '\0'; ++i) {
-                    if (line[i] == '/') {
-                        while (i < sizeof(line) && line[i] != '\0' && line[i] != ' ' && line[i] != '\n') {
-                            line[i++] = ' ';
-                        }
-                    }
-                }
-                if (sscanf(line, " f %d %d %d ", &a, &b, &c) == 3) {
-                    if (a <= 0 || b <= 0 || c <= 0 ||
-                        a > vi/3 || b > vi/3 || c > vi/3) {
-                        printf("Invalid vertex index in OBJ file.\n");
-                        fclose(obj_file);
-                        free(vertices);
-                        free(triangles);
-                        exit(1);
-                    }
-                    a--, b--, c--;
-                    float * temp = realloc(triangles, (ti+9) * sizeof(triangles[0]));
-                    if (!temp) {
-                        printf("Memory allocation failed.\n");
-                        fclose(obj_file);
-                        free(vertices);
-                        free(triangles);
-                        exit(1);
-                    }
-                    triangles = temp;
-                    triangles[ti++] = vertices[(a*3)+0];
-                    triangles[ti++] = vertices[(a*3)+1];
-                    triangles[ti++] = vertices[(a*3)+2];
-                    triangles[ti++] = vertices[(b*3)+0];
-                    triangles[ti++] = vertices[(b*3)+1];
-                    triangles[ti++] = vertices[(b*3)+2];
-                    triangles[ti++] = vertices[(c*3)+0];
-                    triangles[ti++] = vertices[(c*3)+1];
-                    triangles[ti++] = vertices[(c*3)+2];
-                }
-            }
-        }
-        fclose(obj_file);
-        free(vertices);
-        vert_count = ti;
+
+    b3d_mesh_t mesh;
+    int err = b3d_load_obj(file_name, &mesh);
+    if (err == 1) {
+        printf("Failed to load file '%s'.\n", file_name);
+        exit(1);
+    } else if (err == 2) {
+        printf("Memory allocation failed.\n");
+        exit(1);
+    } else if (err == 3) {
+        printf("Invalid vertex index in OBJ file.\n");
+        exit(1);
     }
 
-    printf("Loaded %d triangles from file '%s'.\n", vert_count / 9, file_name);
+    printf("Loaded %d triangles from file '%s'.\n", mesh.triangle_count, file_name);
 
-    // Figure out how tall the model is.
-    float min_y = FLT_MAX;
-    float max_y = -FLT_MAX;
-    for (int i = 1; i < vert_count; i += 3) {
-        if (triangles[i] > max_y) max_y = triangles[i];
-        if (triangles[i] < min_y) min_y = triangles[i];
-    }
-    // Centre the model along the y axis.
+    /* Calculate mesh bounds for camera positioning */
+    float min_y, max_y, max_xz;
+    b3d_mesh_bounds(&mesh, &min_y, &max_y, &max_xz);
+
+    /* Centre the model along the y axis */
     float y_offset = (min_y + max_y) / 2;
 
-    // Figure out how wide the model is (along x and z axis).
-    float max_xz = -FLT_MAX;
-    for (int i = 0; i < vert_count; i += 3) {
-        if (triangles[i+0] > max_xz) max_xz = fabsf(triangles[i+0]);
-        if (triangles[i+2] > max_xz) max_xz = fabsf(triangles[i+2]);
-    }
-    // Move backwards based on how tall and wide the model is.
+    /* Move backwards based on how tall and wide the model is */
     float z_offset = -((max_y - min_y) + max_xz);
 
     b3d_set_camera(0, y_offset, z_offset, 0, 0, 0);
@@ -140,14 +71,14 @@ int main(int argument_count, char ** arguments) {
         b3d_reset();
         b3d_rotate_y(t * 0.3);
 
-        for (int i = 0; i < vert_count; i += 9) {
-            float avg_y = (triangles[i + 1] + triangles[i + 4] + triangles[i + 7]) / 3;
+        for (int i = 0; i < mesh.vertex_count; i += 9) {
+            float avg_y = (mesh.triangles[i + 1] + mesh.triangles[i + 4] + mesh.triangles[i + 7]) / 3;
             float brightness = (avg_y - min_y) / max_y;
             uint32_t c = (50 + (int)(brightness * 200)) & 0xff;
             b3d_triangle(
-                triangles[i + 0], triangles[i + 1], triangles[i + 2],
-                triangles[i + 3], triangles[i + 4], triangles[i + 5],
-                triangles[i + 6], triangles[i + 7], triangles[i + 8],
+                mesh.triangles[i + 0], mesh.triangles[i + 1], mesh.triangles[i + 2],
+                mesh.triangles[i + 3], mesh.triangles[i + 4], mesh.triangles[i + 5],
+                mesh.triangles[i + 6], mesh.triangles[i + 7], mesh.triangles[i + 8],
                 (c << 16 | c << 8 | c)
             );
         }
@@ -161,7 +92,7 @@ int main(int argument_count, char ** arguments) {
 
     free(pixels);
     free(depth);
-    free(triangles);
+    b3d_free_mesh(&mesh);
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

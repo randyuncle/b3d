@@ -47,7 +47,7 @@ int main() {
     b3d_triangle(-0.5, 0.5,-0.5,  0.5, 0.5, 0.5,  0.5, 0.5,-0.5, 0xa44a3f);
     b3d_triangle( 0.5,-0.5, 0.5, -0.5,-0.5, 0.5, -0.5,-0.5,-0.5, 0x5465ff);
     b3d_triangle( 0.5,-0.5, 0.5, -0.5,-0.5,-0.5,  0.5,-0.5,-0.5, 0x788bff);
-    write_tga("cube.tga", pixels, width, height);
+    write_tga("assets/cube.tga", pixels, width, height);
     free(pixels);
     free(depth);
     return 0;

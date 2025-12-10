@@ -12,6 +12,7 @@
 #include <time.h> /* random number seed */
 #include "SDL.h"
 #include "b3d.h"
+#include "b3d_obj.h"
 
 #define RND (rand() / (float)RAND_MAX)
 
@@ -30,82 +31,21 @@ int main(int argument_count, char ** arguments) {
     float * depth = malloc(width * height * sizeof(depth[0]));
     b3d_init(pixels, depth, width, height, 90);
 
-    // Barebones .obj file loader with security improvements.
-    char * file_name = "assets/moai.obj";
+    /* Load OBJ file */
+    const char * file_name = "assets/moai.obj";
     if (argument_count == 2) file_name = arguments[1];
-    int vert_count = 0;
-    float * triangles = NULL;
-    {
-        int vi = 0, ti = 0;
-        float * vertices = NULL;
-        FILE * obj_file = fopen(file_name, "r");
-        if (!obj_file) {
-            printf("Failed to load file '%s'.\n", file_name);
-            exit(1);
-        }
-        char line[1024];
-        float x, y, z;
-        while (fgets(line, sizeof(line), obj_file)) {
-            if (line[0] == 'v' && sscanf(line, " v %f %f %f ", &x, &y, &z) == 3) {
-                float * temp = realloc(vertices, (vi+3) * sizeof(vertices[0]));
-                if (!temp) {
-                    printf("Memory allocation failed.\n");
-                    fclose(obj_file);
-                    free(vertices);
-                    exit(1);
-                }
-                vertices = temp;
-                vertices[vi++] = x;
-                vertices[vi++] = y;
-                vertices[vi++] = z;
-            }
-        }
-        rewind(obj_file);
-        int a, b, c;
-        while (fgets(line, sizeof(line), obj_file)) {
-            if (line[0] == 'f') {
-                // Erase texture and normal information.
-                for (size_t i = 0; i < sizeof(line) && line[i] != '\0'; ++i) {
-                    if (line[i] == '/') {
-                        while (i < sizeof(line) && line[i] != '\0' && line[i] != ' ' && line[i] != '\n') {
-                            line[i++] = ' ';
-                        }
-                    }
-                }
-                if (sscanf(line, " f %d %d %d ", &a, &b, &c) == 3) {
-                    if (a <= 0 || b <= 0 || c <= 0 ||
-                        a > vi/3 || b > vi/3 || c > vi/3) {
-                        printf("Invalid vertex index in OBJ file.\n");
-                        fclose(obj_file);
-                        free(vertices);
-                        free(triangles);
-                        exit(1);
-                    }
-                    a--, b--, c--;
-                    float * temp = realloc(triangles, (ti+9) * sizeof(triangles[0]));
-                    if (!temp) {
-                        printf("Memory allocation failed.\n");
-                        fclose(obj_file);
-                        free(vertices);
-                        free(triangles);
-                        exit(1);
-                    }
-                    triangles = temp;
-                    triangles[ti++] = vertices[(a*3)+0];
-                    triangles[ti++] = vertices[(a*3)+1];
-                    triangles[ti++] = vertices[(a*3)+2];
-                    triangles[ti++] = vertices[(b*3)+0];
-                    triangles[ti++] = vertices[(b*3)+1];
-                    triangles[ti++] = vertices[(b*3)+2];
-                    triangles[ti++] = vertices[(c*3)+0];
-                    triangles[ti++] = vertices[(c*3)+1];
-                    triangles[ti++] = vertices[(c*3)+2];
-                }
-            }
-        }
-        fclose(obj_file);
-        free(vertices);
-        vert_count = ti;
+
+    b3d_mesh_t mesh;
+    int err = b3d_load_obj(file_name, &mesh);
+    if (err == 1) {
+        printf("Failed to load file '%s'.\n", file_name);
+        exit(1);
+    } else if (err == 2) {
+        printf("Memory allocation failed.\n");
+        exit(1);
+    } else if (err == 3) {
+        printf("Invalid vertex index in OBJ file.\n");
+        exit(1);
     }
 
     float player_x = -1.0f;
@@ -169,7 +109,7 @@ int main(int argument_count, char ** arguments) {
         b3d_clear();
         float t = SDL_GetTicks() * 0.001f;
 
-        // A basic version of standard (mouse-look) FPS controls.
+        /* A basic version of standard (mouse-look) FPS controls */
         if (up)    player_forward_speed =  0.1f;
         if (down)  player_forward_speed = -0.1f;
         if (left)  player_strafe_speed =  0.1f;
@@ -182,7 +122,7 @@ int main(int argument_count, char ** arguments) {
         player_forward_speed *= 0.9f;
         player_strafe_speed *= 0.9f;
 
-        // Collision with world edge.
+        /* Collision with world edge */
         if (player_x < -(world_size-boundary)) player_x = -world_size+boundary;
         if (player_x >  (world_size-boundary)) player_x =  world_size-boundary;
         if (player_z < -(world_size-boundary)) player_z = -world_size+boundary;
@@ -190,7 +130,7 @@ int main(int argument_count, char ** arguments) {
 
         b3d_set_camera(player_x, player_height, player_z, player_yaw, player_pitch, 0);
 
-        // Draw a checkerboard floor.
+        /* Draw a checkerboard floor */
         b3d_reset();
         for (int z = -world_size; z < world_size; ++z) {
             for (int x = -world_size; x < world_size; ++x) {
@@ -200,11 +140,11 @@ int main(int argument_count, char ** arguments) {
             }
         }
 
-        // Draw the golden heads.
+        /* Draw the golden heads */
         for (int h = 0; h < 16; h += 2) {
             float x = heads[h];
             float z = heads[h+1];
-            // If the player is close to a head, mark it as found using NAN.
+            /* If the player is close to a head, mark it as found using NAN */
             if (fabsf(player_x - x) < head_radius && fabsf(player_z - z) < head_radius) {
                 heads[h] = NAN;
                 heads[h+1] = NAN;
@@ -213,28 +153,28 @@ int main(int argument_count, char ** arguments) {
                 snprintf(title, 64, "%d / 8 heads found", heads_found);
                 SDL_SetWindowTitle(window, title);
             }
-            // Draw the remaining heads.
+            /* Draw the remaining heads */
             if (!isnan(heads[h])) {
                 b3d_reset();
                 b3d_rotate_y(h+t*3);
                 b3d_scale(0.4,0.4,0.4);
                 b3d_translate(x, 0.4 + sinf(h+t*3)*.1, z);
                 srand(h);
-                for (int i = 0; i < vert_count; i += 9) {
+                for (int i = 0; i < mesh.vertex_count; i += 9) {
                     uint32_t r = 200 + (RND * 50);
                     uint32_t g = 150 + (RND * 50);
                     uint32_t b = 50  + (RND * 50);
                     b3d_triangle(
-                        triangles[i + 0], triangles[i + 1], triangles[i + 2],
-                        triangles[i + 3], triangles[i + 4], triangles[i + 5],
-                        triangles[i + 6], triangles[i + 7], triangles[i + 8],
+                        mesh.triangles[i + 0], mesh.triangles[i + 1], mesh.triangles[i + 2],
+                        mesh.triangles[i + 3], mesh.triangles[i + 4], mesh.triangles[i + 5],
+                        mesh.triangles[i + 6], mesh.triangles[i + 7], mesh.triangles[i + 8],
                         (r << 16 | g << 8 | b)
                     );
                 }
             }
         }
 
-        // Make a jagged border around the world using stretched cubes.
+        /* Make a jagged border around the world using stretched cubes */
         srand(seed);
         for (int i = -world_size; i < world_size; i+=2) {
             for (int j = 0; j < 4; ++j) {
@@ -266,7 +206,7 @@ int main(int argument_count, char ** arguments) {
             }
         }
 
-        // Scatter some pyramids around in the world.
+        /* Scatter some pyramids around in the world */
         srand(seed);
         for (int i = 0; i < 20; ++i) {
             b3d_reset();
@@ -279,7 +219,7 @@ int main(int argument_count, char ** arguments) {
             b3d_triangle(0.0, 2.0, 0.0,-1.0, 0.0,-1.0,-1.0, 0.0, 1.0, 0x00945c);
         }
 
-        // Draw confetti-like random triangles if all heads have been found.
+        /* Draw confetti-like random triangles if all heads have been found */
         if (heads_found == 8) {
             srand(seed);
             for (int i = 0; i < 1000; ++i) {
@@ -302,10 +242,10 @@ int main(int argument_count, char ** arguments) {
             head_confetti_y += 0.1f;
         }
 
-        // Reset the depth buffer to draw the UI on top of the world.
+        /* Reset the depth buffer to draw the UI on top of the world */
         memset(b3d_depth, 0x7f, b3d_width * b3d_height * sizeof(b3d_depth[0]));
 
-        // Draw some UI to show how many heads have been collected.
+        /* Draw some UI to show how many heads have been collected */
         for (int h = 0; h < 8; ++h) {
             b3d_reset();
             b3d_set_camera(0,0,0,0,0,0);
@@ -313,27 +253,27 @@ int main(int argument_count, char ** arguments) {
             b3d_rotate_y(t);
             b3d_translate(h*.1-.35,-.4+sinf(h+t*5)*0.01,.5);
             srand(h);
-            for (int i = 0; i < vert_count; i += 9) {
+            for (int i = 0; i < mesh.vertex_count; i += 9) {
                 uint32_t r = 200 + (RND * 50);
                 uint32_t g = 150 + (RND * 50);
                 uint32_t b = 50  + (RND * 50);
                 b3d_triangle(
-                    triangles[i + 0], triangles[i + 1], triangles[i + 2],
-                    triangles[i + 3], triangles[i + 4], triangles[i + 5],
-                    triangles[i + 6], triangles[i + 7], triangles[i + 8],
+                    mesh.triangles[i + 0], mesh.triangles[i + 1], mesh.triangles[i + 2],
+                    mesh.triangles[i + 3], mesh.triangles[i + 4], mesh.triangles[i + 5],
+                    mesh.triangles[i + 6], mesh.triangles[i + 7], mesh.triangles[i + 8],
                     h < heads_found ? (r << 16 | g << 8 | b) : 0x444444
                 );
             }
         }
 
-        // Draw crosshair.
+        /* Draw crosshair */
         b3d_pixels[(b3d_width/2-5) + (b3d_height/2)   * b3d_width] = 0xffffff;
         b3d_pixels[(b3d_width/2)   + (b3d_height/2)   * b3d_width] = 0xffffff;
         b3d_pixels[(b3d_width/2+5) + (b3d_height/2)   * b3d_width] = 0xffffff;
         b3d_pixels[(b3d_width/2)   + (b3d_height/2-5) * b3d_width] = 0xffffff;
         b3d_pixels[(b3d_width/2)   + (b3d_height/2+5) * b3d_width] = 0xffffff;
 
-        // Display the pixel buffer on the screen.
+        /* Display the pixel buffer on the screen */
         SDL_Delay(1);
         SDL_RenderClear(renderer);
         SDL_UpdateTexture(texture, NULL, pixels, width * sizeof(uint32_t));
@@ -343,7 +283,7 @@ int main(int argument_count, char ** arguments) {
 
     free(pixels);
     free(depth);
-    free(triangles);
+    b3d_free_mesh(&mesh);
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
