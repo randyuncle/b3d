@@ -5,8 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#define BOOTLEG3D_IMPLEMENTATION
-#include "bootleg3d.c"
+#include "b3d.h"
 
 void write_tga(char * path, void * rgba, int width, int height) {
     FILE * file = fopen(path, "wb");
@@ -48,7 +47,7 @@ int main() {
     b3d_triangle(-0.5, 0.5,-0.5,  0.5, 0.5, 0.5,  0.5, 0.5,-0.5, 0xa44a3f);
     b3d_triangle( 0.5,-0.5, 0.5, -0.5,-0.5, 0.5, -0.5,-0.5,-0.5, 0x5465ff);
     b3d_triangle( 0.5,-0.5, 0.5, -0.5,-0.5,-0.5,  0.5,-0.5,-0.5, 0x788bff);
-    write_tga("assets/cube.tga", pixels, width, height);
+    write_tga("cube.tga", pixels, width, height);
     free(pixels);
     free(depth);
     return 0;

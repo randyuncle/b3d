@@ -9,10 +9,9 @@
     Use WASD or the arrow keys to move, and mouse to look.
 */
 
-#include <time.h> // random number seed
+#include <time.h> /* random number seed */
 #include "SDL.h"
-#define BOOTLEG3D_IMPLEMENTATION
-#include "bootleg3d.c"
+#include "b3d.h"
 
 #define RND (rand() / (float)RAND_MAX)
 

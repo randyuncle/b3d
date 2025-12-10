@@ -5,8 +5,7 @@
 */
 
 #include "SDL.h"
-#define BOOTLEG3D_IMPLEMENTATION
-#include "bootleg3d.c"
+#include "b3d.h"
 
 int main() {
     int width = 800;
@@ -26,8 +25,8 @@ int main() {
     // For framerate counting.
     double freq = SDL_GetPerformanceFrequency();
     uint32_t next_update = 0;
-    const int samples = 100;
-    float average_fps[samples];
+    #define FPS_SAMPLES 100
+    float average_fps[FPS_SAMPLES];
     int average_index = 0;
     int have_enough_samples = 0;
 
@@ -90,15 +89,15 @@ int main() {
         if (SDL_GetTicks() > next_update && have_enough_samples) {
             char title[32];
             float fps = 0;
-            for (int i = 0; i < samples; ++i) fps += average_fps[i];
-            fps /= samples;
+            for (int i = 0; i < FPS_SAMPLES; ++i) fps += average_fps[i];
+            fps /= FPS_SAMPLES;
             cube_count += (fps > 60) ? 50 : -50;
             snprintf(title, 32, "%d tris, %.1f fps", cube_count * 12, fps);
             SDL_SetWindowTitle(window, title);
             next_update = SDL_GetTicks() + 250;
         }
         average_fps[average_index++] = 1.0 / ((SDL_GetPerformanceCounter() - time_stamp) / freq);
-        if (average_index >= samples) {
+        if (average_index >= FPS_SAMPLES) {
             average_index = 0;
             have_enough_samples = 1;
         }

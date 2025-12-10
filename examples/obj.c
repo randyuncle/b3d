@@ -8,8 +8,7 @@
 */
 
 #include "SDL.h"
-#define BOOTLEG3D_IMPLEMENTATION
-#include "bootleg3d.c"
+#include "b3d.h"
 
 int main(int argument_count, char ** arguments) {
     int width = 800;
