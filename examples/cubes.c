@@ -18,7 +18,7 @@ int main() {
     SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0 /*SDL_RENDERER_PRESENTVSYNC*/);
     SDL_Texture * texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, width, height);
 
-    uint32_t * pixel_buffer = malloc(width * height * sizeof(float));
+    uint32_t * pixel_buffer = malloc(width * height * sizeof(uint32_t));
     float * depth_buffer = malloc(width * height * sizeof(float));
 
     b3d_init(pixel_buffer, depth_buffer, width, height, 60);
@@ -35,16 +35,19 @@ int main() {
 
     b3d_set_camera(0, 0, -2, 0, 0, 0);
 
-    while (1) {
+    int quit = 0;
+    while (!quit) {
         uint64_t time_stamp = SDL_GetPerformanceCounter();
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT ||
                (event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)) {
-                exit(0);
+                quit = 1;
+                break;
             }
         }
+        if (quit) break;
 
         // Current time in milliseconds.
         float t = SDL_GetTicks() * 0.001f;
@@ -100,4 +103,12 @@ int main() {
             have_enough_samples = 1;
         }
     }
+
+    free(pixel_buffer);
+    free(depth_buffer);
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    return 0;
 }

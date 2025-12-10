@@ -31,8 +31,8 @@ int main(int argument_count, char ** arguments) {
     float * depth = malloc(width * height * sizeof(depth[0]));
     b3d_init(pixels, depth, width, height, 90);
 
-    // Barebones .obj file loader.
-    char * file_name = "moai.obj";
+    // Barebones .obj file loader with security improvements.
+    char * file_name = "assets/moai.obj";
     if (argument_count == 2) file_name = arguments[1];
     int vert_count = 0;
     float * triangles = NULL;
@@ -44,11 +44,18 @@ int main(int argument_count, char ** arguments) {
             printf("Failed to load file '%s'.\n", file_name);
             exit(1);
         }
-        char line[128];
+        char line[1024];
         float x, y, z;
-        while (fgets(line, 128, obj_file)) {
-            if (line[0] == 'v' && sscanf(line, " v %f %f %f ", &x, &y, &z)) {
-                vertices = realloc(vertices, (vi+3) * sizeof(vertices[0]));
+        while (fgets(line, sizeof(line), obj_file)) {
+            if (line[0] == 'v' && sscanf(line, " v %f %f %f ", &x, &y, &z) == 3) {
+                float * temp = realloc(vertices, (vi+3) * sizeof(vertices[0]));
+                if (!temp) {
+                    printf("Memory allocation failed.\n");
+                    fclose(obj_file);
+                    free(vertices);
+                    exit(1);
+                }
+                vertices = temp;
                 vertices[vi++] = x;
                 vertices[vi++] = y;
                 vertices[vi++] = z;
@@ -56,19 +63,35 @@ int main(int argument_count, char ** arguments) {
         }
         rewind(obj_file);
         int a, b, c;
-        while (fgets(line, 128, obj_file)) {
+        while (fgets(line, sizeof(line), obj_file)) {
             if (line[0] == 'f') {
                 // Erase texture and normal information.
-                for (int i = 0; i < 128; ++i) {
+                for (size_t i = 0; i < sizeof(line) && line[i] != '\0'; ++i) {
                     if (line[i] == '/') {
-                        while (line[i] != ' ' && line[i] != '\n' && line[i] != '\0') {
+                        while (i < sizeof(line) && line[i] != '\0' && line[i] != ' ' && line[i] != '\n') {
                             line[i++] = ' ';
                         }
                     }
                 }
-                if (sscanf(line, " f %d %d %d ", &a, &b, &c)) {
+                if (sscanf(line, " f %d %d %d ", &a, &b, &c) == 3) {
+                    if (a <= 0 || b <= 0 || c <= 0 ||
+                        a > vi/3 || b > vi/3 || c > vi/3) {
+                        printf("Invalid vertex index in OBJ file.\n");
+                        fclose(obj_file);
+                        free(vertices);
+                        free(triangles);
+                        exit(1);
+                    }
                     a--, b--, c--;
-                    triangles = realloc(triangles, (ti+9) * sizeof(triangles[0]));
+                    float * temp = realloc(triangles, (ti+9) * sizeof(triangles[0]));
+                    if (!temp) {
+                        printf("Memory allocation failed.\n");
+                        fclose(obj_file);
+                        free(vertices);
+                        free(triangles);
+                        exit(1);
+                    }
+                    triangles = temp;
                     triangles[ti++] = vertices[(a*3)+0];
                     triangles[ti++] = vertices[(a*3)+1];
                     triangles[ti++] = vertices[(a*3)+2];
@@ -81,6 +104,7 @@ int main(int argument_count, char ** arguments) {
                 }
             }
         }
+        fclose(obj_file);
         free(vertices);
         vert_count = ti;
     }
@@ -111,11 +135,13 @@ int main(int argument_count, char ** arguments) {
 
     SDL_SetWindowTitle(window, "Find The Golden Heads");
 
-    while (1) {
+    int quit = 0;
+    while (!quit) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
-                exit(0);
+                quit = 1;
+                break;
             } else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
                 int sc = event.key.keysym.scancode;
                 if (sc == SDL_SCANCODE_UP || sc == SDL_SCANCODE_W) {
@@ -129,7 +155,8 @@ int main(int argument_count, char ** arguments) {
                 } else if (sc == SDL_SCANCODE_LSHIFT || sc == SDL_SCANCODE_RSHIFT || sc == SDL_SCANCODE_C) {
                     crouch = event.key.state;
                 } else if (sc == SDL_SCANCODE_ESCAPE) {
-                    exit(0);
+                    quit = 1;
+                    break;
                 }
             } else if (event.type == SDL_MOUSEMOTION) {
                 player_yaw -= event.motion.xrel * mouse_sensitivity;
@@ -138,6 +165,7 @@ int main(int argument_count, char ** arguments) {
                 if (player_pitch >  1.570796f) player_pitch =  1.57f;
             }
         }
+        if (quit) break;
 
         b3d_clear();
         float t = SDL_GetTicks() * 0.001f;
@@ -313,4 +341,13 @@ int main(int argument_count, char ** arguments) {
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
     }
+
+    free(pixels);
+    free(depth);
+    free(triangles);
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    return 0;
 }
