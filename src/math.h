@@ -1,7 +1,9 @@
 /*
- * Internal math types and functions for bootleg3D
- * This header is not part of the public API.
+ * B3D is freely redistributable under the MIT License. See the file
+ * "LICENSE" for information on usage and redistribution of this file.
  */
+
+/* Internal math types and functions. */
 
 #ifndef B3D_MATH_H
 #define B3D_MATH_H

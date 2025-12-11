@@ -1,4 +1,9 @@
 /*
+ * B3D is freely redistributable under the MIT License. See the file
+ * "LICENSE" for information on usage and redistribution of this file.
+ */
+
+/*
  * OBJ file loader for bootleg3D
  *
  * A simple .obj file loader that extracts triangle data.

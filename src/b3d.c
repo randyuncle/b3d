@@ -1,10 +1,12 @@
 /*
- * bootleg3D implementation
+ * B3D is freely redistributable under the MIT License. See the file
+ * "LICENSE" for information on usage and redistribution of this file.
  */
 
-#include "../include/b3d.h"
-#include "math.h"
 #include <string.h>
+
+#include "b3d.h"
+#include "math.h"
 
 /* Global state */
 int b3d_width, b3d_height;
