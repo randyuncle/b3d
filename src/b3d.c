@@ -3,6 +3,7 @@
  * "LICENSE" for information on usage and redistribution of this file.
  */
 
+#include <stdbool.h>
 #include <string.h>
 
 #include "b3d.h"
@@ -20,12 +21,29 @@ static b3d_vec_t b3d_camera;
 static b3d_mat_t b3d_matrix_stack[B3D_MATRIX_STACK_SIZE];
 static int b3d_matrix_stack_top = 0;
 
+/* Lazy matrix computation state */
+#ifdef B3D_NO_CULLING
+static b3d_mat_t b3d_model_view;    /* Cached model*view matrix */
+#endif
+static bool b3d_model_view_dirty = true; /* Dirty flag for matrix recomputation */
+
 /* Debug counters */
 static size_t b3d_clip_drop_count = 0;
 
 /* Cached screen-space clipping planes (updated when resolution changes) */
 static b3d_vec_t b3d_screen_planes[4][2];
 static int b3d_planes_cached_w = 0, b3d_planes_cached_h = 0;
+
+#ifdef B3D_NO_CULLING
+/* Update cached model*view matrix if dirty (lazy matrix computation) */
+static void b3d_update_model_view(void)
+{
+    if (b3d_model_view_dirty) {
+        b3d_model_view = b3d_mat_mul(b3d_view, b3d_model);
+        b3d_model_view_dirty = false;
+    }
+}
+#endif
 
 static void b3d_update_screen_planes(void)
 {
@@ -179,20 +197,27 @@ int b3d_triangle(float ax, float ay, float az,
     if (!b3d_pixels || !b3d_depth)
         return 0;
     b3d_triangle_t t = (b3d_triangle_t){{{ax, ay, az, 1}, {bx, by, bz, 1}, {cx, cy, cz, 1}}};
+#ifdef B3D_NO_CULLING
+    /* Lazy matrix computation: use cached model*view when culling disabled */
+    b3d_update_model_view();
+    t.p[0] = b3d_mat_mul_vec(b3d_model_view, t.p[0]);
+    t.p[1] = b3d_mat_mul_vec(b3d_model_view, t.p[1]);
+    t.p[2] = b3d_mat_mul_vec(b3d_model_view, t.p[2]);
+#else
+    /* Standard path: separate transforms for world-space culling */
     t.p[0] = b3d_mat_mul_vec(b3d_model, t.p[0]);
     t.p[1] = b3d_mat_mul_vec(b3d_model, t.p[1]);
     t.p[2] = b3d_mat_mul_vec(b3d_model, t.p[2]);
-#ifndef B3D_NO_CULLING
     b3d_vec_t line_a = b3d_vec_sub(t.p[1], t.p[0]);
     b3d_vec_t line_b = b3d_vec_sub(t.p[2], t.p[0]);
     b3d_vec_t normal = b3d_vec_cross(line_a, line_b);
     b3d_vec_t cam_ray = b3d_vec_sub(t.p[0], b3d_camera);
     if (b3d_vec_dot(normal, cam_ray) > B3D_CULL_THRESHOLD)
         return 0;
-#endif
     t.p[0] = b3d_mat_mul_vec(b3d_view, t.p[0]);
     t.p[1] = b3d_mat_mul_vec(b3d_view, t.p[1]);
     t.p[2] = b3d_mat_mul_vec(b3d_view, t.p[2]);
+#endif
     b3d_triangle_t clipped[2];
     int count = b3d_clip_against_plane(
         (b3d_vec_t){0, 0, B3D_NEAR_DISTANCE, 1},
@@ -256,31 +281,37 @@ int b3d_triangle(float ax, float ay, float az,
 void b3d_reset(void)
 {
     b3d_model = b3d_mat_ident();
+    b3d_model_view_dirty = true;
 }
 
 void b3d_rotate_x(float angle)
 {
     b3d_model = b3d_mat_mul(b3d_model, b3d_mat_rot_x(angle));
+    b3d_model_view_dirty = true;
 }
 
 void b3d_rotate_y(float angle)
 {
     b3d_model = b3d_mat_mul(b3d_model, b3d_mat_rot_y(angle));
+    b3d_model_view_dirty = true;
 }
 
 void b3d_rotate_z(float angle)
 {
     b3d_model = b3d_mat_mul(b3d_model, b3d_mat_rot_z(angle));
+    b3d_model_view_dirty = true;
 }
 
 void b3d_translate(float x, float y, float z)
 {
     b3d_model = b3d_mat_mul(b3d_model, b3d_mat_trans(x, y, z));
+    b3d_model_view_dirty = true;
 }
 
 void b3d_scale(float x, float y, float z)
 {
     b3d_model = b3d_mat_mul(b3d_model, b3d_mat_scale(x, y, z));
+    b3d_model_view_dirty = true;
 }
 
 void b3d_set_fov(float fov_in_degrees)
@@ -299,12 +330,14 @@ void b3d_set_camera(float x, float y, float z, float yaw, float pitch, float rol
     target = b3d_mat_mul_vec(b3d_mat_rot_y(yaw), target);
     target = b3d_vec_add(b3d_camera, target);
     b3d_view = b3d_mat_qinv(b3d_mat_point_at(b3d_camera, target, up));
+    b3d_model_view_dirty = true;
 }
 
 void b3d_look_at(float x, float y, float z)
 {
     b3d_vec_t up = {0, 1, 0, 1};
     b3d_view = b3d_mat_qinv(b3d_mat_point_at(b3d_camera, (b3d_vec_t){x, y, z, 1}, up));
+    b3d_model_view_dirty = true;
 }
 
 int b3d_to_screen(float x, float y, float z, int *sx, int *sy)
@@ -339,6 +372,7 @@ void b3d_init(uint32_t *pixel_buffer, b3d_depth_t *depth_buffer, int w, int h, f
         b3d_depth = NULL;
         b3d_matrix_stack_top = 0;
         b3d_clip_drop_count = 0;
+        b3d_model_view_dirty = true;
         return;
     }
     b3d_width = w;
@@ -346,6 +380,7 @@ void b3d_init(uint32_t *pixel_buffer, b3d_depth_t *depth_buffer, int w, int h, f
     b3d_pixels = pixel_buffer;
     b3d_depth = depth_buffer;
     b3d_matrix_stack_top = 0;
+    b3d_model_view_dirty = true;
     b3d_update_screen_planes();
     b3d_clear();
     b3d_reset();
@@ -393,6 +428,7 @@ int b3d_pop_matrix(void)
     if (b3d_matrix_stack_top <= 0)
         return 0;
     b3d_model = b3d_matrix_stack[--b3d_matrix_stack_top];
+    b3d_model_view_dirty = true;
     return 1;
 }
 
@@ -412,6 +448,7 @@ void b3d_set_model_matrix(const float m[16])
     for (int r = 0; r < 4; ++r)
         for (int c = 0; c < 4; ++c)
             b3d_model.m[r][c] = m[r * 4 + c];
+    b3d_model_view_dirty = true;
 }
 
 size_t b3d_get_clip_drop_count(void)
