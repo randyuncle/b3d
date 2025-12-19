@@ -29,10 +29,10 @@ static const char *get_snapshot_path(int argc, char **argv)
     return NULL;
 }
 
-static void write_png(const char *path,
-                      const uint32_t *rgba,
-                      int width,
-                      int height)
+static void generate(const char *path,
+                     const uint32_t *rgba,
+                     int width,
+                     int height)
 {
     FILE *file = fopen(path, "wb");
     if (!file)
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
     /* Headless snapshot mode for CI/docs. */
     if (snapshot) {
         render_heightmap(pixels, depth, width, height, 1.0f);
-        write_png(snapshot, pixels, width, height);
+        generate(snapshot, pixels, width, height);
         free(pixels);
         free(depth);
         return 0;

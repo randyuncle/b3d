@@ -31,10 +31,10 @@ static const char *get_snapshot_path(int argc, char **argv)
     return NULL;
 }
 
-static void write_png(const char *path,
-                      const uint32_t *rgba,
-                      int width,
-                      int height)
+static void generate(const char *path,
+                     const uint32_t *rgba,
+                     int width,
+                     int height)
 {
     FILE *file = fopen(path, "wb");
     if (!file)
@@ -122,7 +122,7 @@ int main(int argument_count, char **arguments)
                          mesh.triangles[i + 6], mesh.triangles[i + 7],
                          mesh.triangles[i + 8], (c << 16 | c << 8 | c));
         }
-        write_png(snapshot, pixels, width, height);
+        generate(snapshot, pixels, width, height);
         free(pixels);
         free(depth);
         b3d_free_mesh(&mesh);

@@ -28,10 +28,10 @@ static const char *get_snapshot_path(int argc, char **argv)
     return NULL;
 }
 
-static void write_png(const char *path,
-                      const uint32_t *rgba,
-                      int width,
-                      int height)
+static void generate(const char *path,
+                     const uint32_t *rgba,
+                     int width,
+                     int height)
 {
     FILE *file = fopen(path, "wb");
     if (!file)
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 
     if (snapshot) {
         render_cubes(pixel_buffer, depth_buffer, width, height, 100, 1.2f);
-        write_png(snapshot, pixel_buffer, width, height);
+        generate(snapshot, pixel_buffer, width, height);
         free(pixel_buffer);
         free(depth_buffer);
         return 0;
