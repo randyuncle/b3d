@@ -141,19 +141,29 @@ static void b3d_rasterize(float ax,
     float dy_top = by - ay;
     if (dy_total < B3D_DEGEN_THRESHOLD)
         return;
+
+    /* Precompute triangle gradients */
+    float dx_left = cx - ax;
+    float dz_left = cz - az;
+    float dx_right_top = bx - ax;
+    float dz_right_top = bz - az;
+    float dx_right_bot = cx - bx;
+    float dz_right_bot = cz - bz;
+
     float alpha = 0, alpha_step = 1.0f / dy_total;
     float beta = 0,
           beta_step = (dy_top > B3D_DEGEN_THRESHOLD) ? 1.0f / dy_top : 0.0f;
+
     for (int y = (int) ay; y < by; y++) {
         if (y < 0 || y >= b3d_height) {
             alpha += alpha_step;
             beta += beta_step;
             continue;
         }
-        float sx = ax + (cx - ax) * alpha;
-        float sz = az + (cz - az) * alpha;
-        float ex = ax + (bx - ax) * beta;
-        float ez = az + (bz - az) * beta;
+        float sx = ax + dx_left * alpha;
+        float sz = az + dz_left * alpha;
+        float ex = ax + dx_right_top * beta;
+        float ez = az + dz_right_top * beta;
         if (sx > ex) {
             t = sx;
             sx = ex;
@@ -168,8 +178,12 @@ static void b3d_rasterize(float ax,
             beta += beta_step;
             continue;
         }
+
+        /* Reduce redundant calculations by computing initial depth and
+         * incremental step */
+        float depth_start = sz;
         float depth_step = (ez - sz) / dx;
-        float d = sz;
+
         int start = (int) sx < 0 ? 0 : (int) sx;
         int end = (int) ex > b3d_width ? b3d_width : (int) ex;
         /* Clamp start to buffer width and use float delta for depth offset */
@@ -180,7 +194,7 @@ static void b3d_rasterize(float ax,
             beta += beta_step;
             continue;
         }
-        d += depth_step * ((float) start - sx);
+        float d = depth_start + depth_step * ((float) start - sx);
         /* Scanline unrolling: pre-compute row base, use pointer arithmetic */
         size_t row_base = (size_t) y * (size_t) b3d_width;
         b3d_depth_t *dp = b3d_depth + row_base + start;
@@ -189,8 +203,10 @@ static void b3d_rasterize(float ax,
         /* Unrolled loop: process 4 pixels at a time */
         while (n >= 4) {
             /* Check if we are approaching buffer bounds */
-            if ((dp + 4) > (b3d_depth + (size_t)b3d_height * (size_t)b3d_width) ||
-                (pp + 4) > (b3d_pixels + (size_t)b3d_height * (size_t)b3d_width)) {
+            if ((dp + 4) >
+                    (b3d_depth + (size_t) b3d_height * (size_t) b3d_width) ||
+                (pp + 4) >
+                    (b3d_pixels + (size_t) b3d_height * (size_t) b3d_width)) {
                 break;
             }
             PUT_PIXEL(0);
@@ -203,8 +219,8 @@ static void b3d_rasterize(float ax,
         /* Remainder loop: process remaining pixels */
         while (n-- > 0) {
             /* Check if we are approaching buffer bounds */
-            if (dp >= (b3d_depth + (size_t)b3d_height * (size_t)b3d_width) ||
-                pp >= (b3d_pixels + (size_t)b3d_height * (size_t)b3d_width)) {
+            if (dp >= (b3d_depth + (size_t) b3d_height * (size_t) b3d_width) ||
+                pp >= (b3d_pixels + (size_t) b3d_height * (size_t) b3d_width)) {
                 break;
             }
             PUT_PIXEL(0);
@@ -216,16 +232,16 @@ static void b3d_rasterize(float ax,
     float dy_bot = cy - by;
     beta = 0;
     beta_step = (dy_bot > B3D_DEGEN_THRESHOLD) ? 1.0f / dy_bot : 0.0f;
+
+    /* Precompute depth gradient for bottom half */
     for (int y = (int) by; y < cy; y++) {
         if (y < 0 || y >= b3d_height) {
             alpha += alpha_step;
             beta += beta_step;
             continue;
         }
-        float sx = ax + (cx - ax) * alpha;
-        float sz = az + (cz - az) * alpha;
-        float ex = bx + (cx - bx) * beta;
-        float ez = bz + (cz - bz) * beta;
+        float sx = ax + dx_left * alpha, sz = az + dz_left * alpha;
+        float ex = bx + dx_right_bot * beta, ez = bz + dz_right_bot * beta;
         if (sx > ex) {
             t = sx;
             sx = ex;
@@ -240,8 +256,11 @@ static void b3d_rasterize(float ax,
             beta += beta_step;
             continue;
         }
+
+        /* compute initial depth and incremental step */
+        float depth_start = sz;
         float depth_step = (ez - sz) / dx;
-        float d = sz;
+
         int start = (int) sx < 0 ? 0 : (int) sx;
         int end = (int) ex > b3d_width ? b3d_width : (int) ex;
         /* Clamp start to buffer width and use float delta for depth offset */
@@ -252,7 +271,7 @@ static void b3d_rasterize(float ax,
             beta += beta_step;
             continue;
         }
-        d += depth_step * ((float) start - sx);
+        float d = depth_start + depth_step * ((float) start - sx);
         /* Scanline unrolling: pre-compute row base, use pointer arithmetic */
         size_t row_base = (size_t) y * (size_t) b3d_width;
         b3d_depth_t *dp = b3d_depth + row_base + start;
@@ -261,8 +280,10 @@ static void b3d_rasterize(float ax,
         /* Unrolled loop: process 4 pixels at a time */
         while (n >= 4) {
             /* Check if we are approaching buffer bounds */
-            if ((dp + 4) > (b3d_depth + (size_t)b3d_height * (size_t)b3d_width) ||
-                (pp + 4) > (b3d_pixels + (size_t)b3d_height * (size_t)b3d_width)) {
+            if ((dp + 4) >
+                    (b3d_depth + (size_t) b3d_height * (size_t) b3d_width) ||
+                (pp + 4) >
+                    (b3d_pixels + (size_t) b3d_height * (size_t) b3d_width)) {
                 break;
             }
             PUT_PIXEL(0);
@@ -275,8 +296,8 @@ static void b3d_rasterize(float ax,
         /* Remainder loop: process remaining pixels */
         while (n-- > 0) {
             /* Check if we are approaching buffer bounds */
-            if (dp >= (b3d_depth + (size_t)b3d_height * (size_t)b3d_width) ||
-                pp >= (b3d_pixels + (size_t)b3d_height * (size_t)b3d_width)) {
+            if (dp >= (b3d_depth + (size_t) b3d_height * (size_t) b3d_width) ||
+                pp >= (b3d_pixels + (size_t) b3d_height * (size_t) b3d_width)) {
                 break;
             }
             PUT_PIXEL(0);
@@ -514,7 +535,7 @@ void b3d_clear(void)
 
     b3d_clip_drop_count = 0;
     /* Check for integer overflow when calculating buffer size */
-    if ((size_t)b3d_width > SIZE_MAX / (size_t)b3d_height)
+    if ((size_t) b3d_width > SIZE_MAX / (size_t) b3d_height)
         return; /* Prevent overflow */
 
     size_t count = (size_t) b3d_width * (size_t) b3d_height;
