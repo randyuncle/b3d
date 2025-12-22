@@ -8,7 +8,7 @@
 .DEFAULT_GOAL := all
 
 # Tests
-TESTS := tests/math-fixed tests/math-float
+TESTS := tests/math-fixed tests/math-float tests/test-api
 
 # Include modular build components
 include mk/common.mk
@@ -54,6 +54,10 @@ tests/math-fixed: tests/test-math.c $(LIB_DEPS)
 tests/math-float: tests/test-math.c $(LIB_DEPS)
 	$(VECHO) "  CC\t$@ (float)"
 	$(Q)$(CC) $(CFLAGS) -DB3D_FLOAT_POINT $(INCLUDES) -Isrc $< -o $@ $(LIBS)
+
+tests/test-api: tests/test-api.c $(LIB_DEPS) $(LIB_OBJ)
+	$(VECHO) "  CC\t$@"
+	$(Q)$(CC) $(CFLAGS) $(INCLUDES) $< $(LIB_OBJ) -o $@ $(LIBS)
 
 check: $(TESTS)
 	$(VECHO) "  RUN\t$(TESTS)"

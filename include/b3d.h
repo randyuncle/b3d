@@ -184,9 +184,4 @@ int b3d_to_screen(float x, float y, float z, int *sx, int *sy);
  */
 size_t b3d_get_clip_drop_count(void);
 
-/* Public globals (read-only recommended) */
-extern int b3d_width, b3d_height;
-extern uint32_t *b3d_pixels;
-extern b3d_depth_t *b3d_depth;
-
 #endif /* B3D_H */

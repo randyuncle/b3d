@@ -1,4 +1,4 @@
-# mk/common.mk - Common definitions and platform detection
+# Common definitions and platform detection
 
 # Platform detection
 UNAME_S := $(shell uname -s)

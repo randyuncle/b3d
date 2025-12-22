@@ -419,7 +419,7 @@ int main(int argument_count, char **arguments)
         }
 
         /* Reset the depth buffer to draw the UI on top of the world */
-        memset(b3d_depth, 0x7f, b3d_width * b3d_height * sizeof(b3d_depth[0]));
+        memset(depth, 0x7f, width * height * sizeof(depth[0]));
 
         /* Draw some UI to show how many heads have been collected */
         for (int h = 0; h < 8; ++h) {
@@ -444,15 +444,12 @@ int main(int argument_count, char **arguments)
         }
 
         /* Draw crosshair */
-        b3d_pixels[(b3d_width / 2 - 5) + (b3d_height / 2) * b3d_width] =
-            0xffffff;
-        b3d_pixels[(b3d_width / 2) + (b3d_height / 2) * b3d_width] = 0xffffff;
-        b3d_pixels[(b3d_width / 2 + 5) + (b3d_height / 2) * b3d_width] =
-            0xffffff;
-        b3d_pixels[(b3d_width / 2) + (b3d_height / 2 - 5) * b3d_width] =
-            0xffffff;
-        b3d_pixels[(b3d_width / 2) + (b3d_height / 2 + 5) * b3d_width] =
-            0xffffff;
+        int cx = width / 2, cy = height / 2;
+        pixels[(cx - 5) + cy * width] = 0xffffff;
+        pixels[cx + cy * width] = 0xffffff;
+        pixels[(cx + 5) + cy * width] = 0xffffff;
+        pixels[cx + (cy - 5) * width] = 0xffffff;
+        pixels[cx + (cy + 5) * width] = 0xffffff;
 
         /* Display the pixel buffer on the screen */
         SDL_Delay(1);
