@@ -5,16 +5,19 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 #include "pngwrite.h"
 
 /* Get snapshot path from command line arguments or environment variable
- *
  * Checks for B3D_SNAPSHOT environment variable first, then looks for
  * --snapshot=PATH argument.
+ * @argc: argument count
+ * @argv: argument array
+ *
+ * Returns snapshot path if found, NULL otherwise.
  */
 static inline const char *get_snapshot_path(int argc, char **argv)
 {
@@ -32,13 +35,16 @@ static inline const char *get_snapshot_path(int argc, char **argv)
 }
 
 /* Write PNG image to file
- *
  * Converts ARGB image data to RGBA format and writes as PNG.
+ * @path:   output file path
+ * @rgba:   input RGBA pixel data
+ * @width:  image width
+ * @height: image height
  */
 static inline void write_png(const char *path,
-                     const uint32_t *rgba,
-                     int width,
-                     int height)
+                             const uint32_t *rgba,
+                             int width,
+                             int height)
 {
     FILE *file = fopen(path, "wb");
     if (!file)

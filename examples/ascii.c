@@ -13,6 +13,13 @@
 
 static const char *palette = " .:-=+*#%@";
 
+/* Render a frame of the rotating cube animation
+ * @pixels: output pixel buffer
+ * @depth:  depth buffer
+ * @w:      buffer width
+ * @h:      buffer height
+ * @t:      time parameter for animation
+ */
 static void render_frame(uint32_t *pixels,
                          b3d_depth_t *depth,
                          int w,
@@ -62,8 +69,7 @@ int main(int argc, char **argv)
 {
     (void) argc;
     (void) argv;
-    const int width = 96;
-    const int height = 64;
+    const int width = 96, height = 64;
 
     uint32_t *pixels =
         malloc((size_t) width * (size_t) height * sizeof(pixels[0]));

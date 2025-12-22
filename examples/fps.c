@@ -23,8 +23,7 @@
 
 int main(int argument_count, char **arguments)
 {
-    int width = 640;
-    int height = 480;
+    int width = 640, height = 480;
     const char *snapshot = get_snapshot_path(argument_count, arguments);
 
     setbuf(stdout, NULL);

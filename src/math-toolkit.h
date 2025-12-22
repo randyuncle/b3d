@@ -93,8 +93,9 @@ typedef int32_t b3d_fixed_t;
 #define B3D_FP_MUL(a, b) ((b3d_fixed_t) (((int64_t) (a) * (b)) >> B3D_FP_BITS))
 #define B3D_FP_DIV(a, b) \
     ((b) == 0 ? 0 : (b3d_fixed_t) (((int64_t) (a) * B3D_FP_ONE) / (b)))
-#define B3D_FP_FLOOR(f) ((f) & ~((1 << B3D_FP_BITS) - 1)) /* replaces floorf \
-                                                           */
+#define B3D_FP_FLOOR(f)                                  \
+    ((f) & ~((1 << B3D_FP_BITS) - 1)) /* replaces floorf \
+                                       */
 #define B3D_FP_ADD(a, b) ((a) + (b))
 #define B3D_FP_SUB(a, b) ((a) - (b))
 

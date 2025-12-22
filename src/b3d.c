@@ -138,14 +138,17 @@ static void b3d_rasterize(b3d_scalar_t ax,
     ay = B3D_FP_FLOOR(ay);
     by = B3D_FP_FLOOR(by);
     cy = B3D_FP_FLOOR(cy);
+
     /* Screen-space AABB early-out */
     b3d_scalar_t min_x = b3d_fp_min(b3d_fp_min(ax, bx), cx);
     b3d_scalar_t max_x = b3d_fp_max(b3d_fp_max(ax, bx), cx);
     b3d_scalar_t min_y = b3d_fp_min(b3d_fp_min(ay, by), cy);
     b3d_scalar_t max_y = b3d_fp_max(b3d_fp_max(ay, by), cy);
     if (max_x < 0 || min_x >= B3D_INT_TO_FP(b3d_width) || max_y < 0 ||
-        min_y >= B3D_INT_TO_FP(b3d_height))
+        min_y >= B3D_INT_TO_FP(b3d_height)) {
         return;
+    }
+
     b3d_scalar_t t = 0;
     if (ay > by) {
         t = ax;
@@ -371,6 +374,9 @@ static void b3d_rasterize(b3d_scalar_t ax,
  * Public API
  */
 
+/* Render a triangle.
+ * Returns 1 if rendered, 0 if culled/clipped away.
+ */
 int b3d_triangle(float ax,
                  float ay,
                  float az,
@@ -467,48 +473,56 @@ int b3d_triangle(float ax,
     return 1;
 }
 
+/* Reset model matrix to identity */
 void b3d_reset(void)
 {
     b3d_model = b3d_mat_ident();
     b3d_model_view_dirty = true;
 }
 
+/* Apply rotation around X axis (angle in radians) */
 void b3d_rotate_x(float angle)
 {
     b3d_model = b3d_mat_mul(b3d_model, b3d_mat_rot_x(angle));
     b3d_model_view_dirty = true;
 }
 
+/* Apply rotation around Y axis (angle in radians) */
 void b3d_rotate_y(float angle)
 {
     b3d_model = b3d_mat_mul(b3d_model, b3d_mat_rot_y(angle));
     b3d_model_view_dirty = true;
 }
 
+/* Apply rotation around Z axis (angle in radians) */
 void b3d_rotate_z(float angle)
 {
     b3d_model = b3d_mat_mul(b3d_model, b3d_mat_rot_z(angle));
     b3d_model_view_dirty = true;
 }
 
+/* Apply translation to model matrix */
 void b3d_translate(float x, float y, float z)
 {
     b3d_model = b3d_mat_mul(b3d_model, b3d_mat_trans(x, y, z));
     b3d_model_view_dirty = true;
 }
 
+/* Apply scale to model matrix */
 void b3d_scale(float x, float y, float z)
 {
     b3d_model = b3d_mat_mul(b3d_model, b3d_mat_scale(x, y, z));
     b3d_model_view_dirty = true;
 }
 
+/* Set field of view (in DEGREES) */
 void b3d_set_fov(float fov_in_degrees)
 {
     b3d_proj = b3d_mat_proj(fov_in_degrees, b3d_height / (float) b3d_width,
                             B3D_NEAR_DISTANCE, B3D_FAR_DISTANCE);
 }
 
+/* Set camera position and orientation (yaw, pitch, roll in radians) */
 void b3d_set_camera(float x,
                     float y,
                     float z,
@@ -527,6 +541,7 @@ void b3d_set_camera(float x,
     b3d_model_view_dirty = true;
 }
 
+/* Point camera at target position (uses current camera position) */
 void b3d_look_at(float x, float y, float z)
 {
     b3d_vec_t up = {0, 1, 0, 1};
@@ -535,6 +550,9 @@ void b3d_look_at(float x, float y, float z)
     b3d_model_view_dirty = true;
 }
 
+/* Project world coordinate to screen coordinate.
+ * Returns 1 if in front of camera, 0 otherwise.
+ */
 int b3d_to_screen(float x, float y, float z, int *sx, int *sy)
 {
     if (!sx || !sy)
@@ -555,6 +573,8 @@ int b3d_to_screen(float x, float y, float z, int *sx, int *sy)
     return 1;
 }
 
+/* Initialize the renderer with pixel/depth buffers and field of view (degrees)
+ */
 void b3d_init(uint32_t *pixel_buffer,
               b3d_depth_t *depth_buffer,
               int w,
@@ -588,6 +608,7 @@ void b3d_init(uint32_t *pixel_buffer,
     b3d_set_camera(0, 0, 0, 0, 0, 0);
 }
 
+/* Clear pixel buffer to black and depth buffer to far plane */
 void b3d_clear(void)
 {
     if (!b3d_depth || !b3d_pixels || b3d_width <= 0 || b3d_height <= 0)
@@ -608,6 +629,9 @@ void b3d_clear(void)
     memset(b3d_pixels, 0, count * sizeof(b3d_pixels[0]));
 }
 
+/* Calculate safe buffer size to avoid integer overflow.
+ * Returns 0 if parameters would overflow.
+ */
 size_t b3d_buffer_size(int w, int h, size_t elem_size)
 {
     if (w <= 0 || h <= 0 || elem_size == 0)
@@ -623,6 +647,8 @@ size_t b3d_buffer_size(int w, int h, size_t elem_size)
     return count * elem_size;
 }
 
+/* Push current model matrix onto stack. Returns 1 on success, 0 if stack full.
+ */
 int b3d_push_matrix(void)
 {
     if (b3d_matrix_stack_top >= B3D_MATRIX_STACK_SIZE)
@@ -631,6 +657,7 @@ int b3d_push_matrix(void)
     return 1;
 }
 
+/* Pop model matrix from stack. Returns 1 on success, 0 if stack empty. */
 int b3d_pop_matrix(void)
 {
     if (b3d_matrix_stack_top <= 0)
@@ -640,6 +667,7 @@ int b3d_pop_matrix(void)
     return 1;
 }
 
+/* Copy current model matrix to out[16] */
 void b3d_get_model_matrix(float out[16])
 {
     if (!out)
@@ -649,6 +677,7 @@ void b3d_get_model_matrix(float out[16])
             out[r * 4 + c] = b3d_model.m[r][c];
 }
 
+/* Set model matrix from m[16] */
 void b3d_set_model_matrix(const float m[16])
 {
     if (!m)
@@ -659,6 +688,10 @@ void b3d_set_model_matrix(const float m[16])
     b3d_model_view_dirty = true;
 }
 
+/* Number of triangles dropped during clipping due to buffer limits (reset by
+ * b3d_clear).
+ * Returns number of triangles dropped since last clear.
+ */
 size_t b3d_get_clip_drop_count(void)
 {
     return b3d_clip_drop_count;

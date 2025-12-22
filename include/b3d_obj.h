@@ -27,15 +27,12 @@ typedef struct {
 } b3d_mesh_t;
 
 /* Load a mesh from an OBJ file.
- * @path : Path to the .obj file
- * @mesh : Pointer to mesh structure to fill
- *
- * Returns:
- *   0 on success, non-zero on error:
+ * @path:       Path to the .obj file
+ * @mesh:       Pointer to mesh structure to fill
+ * Returns 0 on success, non-zero on error:
  *   1 = file not found
  *   2 = memory allocation failed
  *   3 = invalid vertex index in file
- *
  * Note: Only triangulated faces are supported. The mesh must be freed
  * with b3d_free_mesh() when no longer needed.
  */
@@ -170,10 +167,10 @@ static inline void b3d_free_mesh(b3d_mesh_t *mesh)
 }
 
 /* Calculate mesh bounds (useful for centering and scaling).
- * @mesh   : The mesh to analyze
- * @min_y  : Output: minimum Y coordinate
- * @max_y  : Output: maximum Y coordinate
- * @max_xz : Output: maximum absolute X or Z coordinate
+ * @mesh:       The mesh to analyze
+ * @min_y:      Output: minimum Y coordinate
+ * @max_y:      Output: maximum Y coordinate
+ * @max_xz:     Output: maximum absolute X or Z coordinate
  */
 static inline void b3d_mesh_bounds(const b3d_mesh_t *mesh,
                                    float *min_y,

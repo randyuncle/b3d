@@ -22,44 +22,42 @@ static int section_total = 0;
 #define ANSI_BOLD "\033[1m"
 #define ANSI_RESET "\033[0m"
 
-#define TEST(name) \
-    static int test_##name(void)
+#define TEST(name) static int test_##name(void)
 
-#define RUN_TEST(name)                                   \
-    do {                                                 \
-        tests_run++;                                     \
-        section_total++;                                 \
-        if (test_##name()) {                             \
-            tests_passed++;                              \
-            section_passed++;                            \
-        }                                                \
+#define RUN_TEST(name)        \
+    do {                      \
+        tests_run++;          \
+        section_total++;      \
+        if (test_##name()) {  \
+            tests_passed++;   \
+            section_passed++; \
+        }                     \
     } while (0)
 
-#define SECTION_BEGIN(name)                              \
-    do {                                                 \
-        section_passed = 0;                              \
-        section_total = 0;                               \
-        printf("  %-44s", name);                         \
-        fflush(stdout);                                  \
+#define SECTION_BEGIN(name)      \
+    do {                         \
+        section_passed = 0;      \
+        section_total = 0;       \
+        printf("  %-44s", name); \
+        fflush(stdout);          \
     } while (0)
 
-#define SECTION_END()                                                     \
-    do {                                                                  \
-        if (section_passed == section_total)                              \
-            printf("[ " ANSI_GREEN "OK" ANSI_RESET " ]\n");               \
-        else                                                              \
-            printf("[ " ANSI_RED "FAIL %d/%d" ANSI_RESET " ]\n",          \
-                   section_passed, section_total);                        \
+#define SECTION_END()                                            \
+    do {                                                         \
+        if (section_passed == section_total)                     \
+            printf("[ " ANSI_GREEN "OK" ANSI_RESET " ]\n");      \
+        else                                                     \
+            printf("[ " ANSI_RED "FAIL %d/%d" ANSI_RESET " ]\n", \
+                   section_passed, section_total);               \
     } while (0)
 
-#define ASSERT(cond)       \
-    do {                   \
-        if (!(cond))       \
-            return 0;      \
+#define ASSERT(cond)  \
+    do {              \
+        if (!(cond))  \
+            return 0; \
     } while (0)
 
-#define ASSERT_NEAR(a, b, eps) \
-    ASSERT(fabsf((float)(a) - (float)(b)) < (eps))
+#define ASSERT_NEAR(a, b, eps) ASSERT(fabsf((float) (a) - (float) (b)) < (eps))
 
 /*
  * Fixed-point conversion tests

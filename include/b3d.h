@@ -34,10 +34,10 @@ typedef int32_t b3d_depth_t;
 
 /*
  * Angle Unit Convention:
- *   - b3d_rotate_x/y/z(angle) : angle in RADIANS
- *   - b3d_set_camera(yaw, pitch, roll): angles in RADIANS
- *   - b3d_set_fov(fov)        : fov in DEGREES
- *   - b3d_init(fov)           : fov in DEGREES
+ *   b3d_rotate_x/y/z(angle) : angle in RADIANS
+ *   b3d_set_camera(yaw, pitch, roll): angles in RADIANS
+ *   b3d_set_fov(fov) : fov in DEGREES
+ *   b3d_init(fov) : fov in DEGREES
  */
 
 /* Matrix stack size for push/pop operations */
@@ -46,6 +46,11 @@ typedef int32_t b3d_depth_t;
 /* Initialization and clearing */
 
 /* Initialize the renderer with pixel/depth buffers and field of view (degrees)
+ * @pixel_buffer: output pixel buffer (w * h * sizeof(uint32_t) bytes)
+ * @depth_buffer: depth buffer (w * h * sizeof(b3d_depth_t) bytes)
+ * @w:            buffer width in pixels
+ * @h:            buffer height in pixels
+ * @fov:          field of view in degrees
  */
 void b3d_init(uint32_t *pixel_buffer,
               b3d_depth_t *depth_buffer,
@@ -57,6 +62,10 @@ void b3d_init(uint32_t *pixel_buffer,
 void b3d_clear(void);
 
 /* Calculate safe buffer size to avoid integer overflow.
+ * @w:         buffer width in pixels
+ * @h:         buffer height in pixels
+ * @elem_size: size of each element in bytes
+ *
  * Returns 0 if parameters would overflow.
  */
 size_t b3d_buffer_size(int w, int h, size_t elem_size);
@@ -66,41 +75,61 @@ size_t b3d_buffer_size(int w, int h, size_t elem_size);
 /* Reset model matrix to identity */
 void b3d_reset(void);
 
-/* Apply translation to model matrix */
+/* Apply translation to model matrix
+ * @x, @y, @z: translation vector components
+ */
 void b3d_translate(float x, float y, float z);
 
-/* Apply rotation around X axis (angle in radians) */
+/* Apply rotation around X axis (angle in radians)
+ * @angle: rotation angle in radians
+ */
 void b3d_rotate_x(float angle);
 
-/* Apply rotation around Y axis (angle in radians) */
+/* Apply rotation around Y axis (angle in radians)
+ * @angle: rotation angle in radians
+ */
 void b3d_rotate_y(float angle);
 
-/* Apply rotation around Z axis (angle in radians) */
+/* Apply rotation around Z axis (angle in radians)
+ * @angle: rotation angle in radians
+ */
 void b3d_rotate_z(float angle);
 
-/* Apply scale to model matrix */
+/* Apply scale to model matrix
+ * @x, @y, @z: scale factors for each axis
+ */
 void b3d_scale(float x, float y, float z);
 
 /* Matrix stack operations for nested transformations */
 
 /* Push current model matrix onto stack. Returns 1 on success, 0 if stack full.
+ * Returns 1 on success, 0 if stack full.
  */
 int b3d_push_matrix(void);
 
-/* Pop model matrix from stack. Returns 1 on success, 0 if stack empty. */
+/* Pop model matrix from stack. Returns 1 on success, 0 if stack empty.
+ * Returns 1 on success, 0 if stack empty.
+ */
 int b3d_pop_matrix(void);
 
 /* Direct matrix access (row-major 4x4 matrix, 16 floats) */
 
-/* Copy current model matrix to out[16] */
+/* Copy current model matrix to out[16]
+ * @out: output array of 16 floats for matrix data
+ */
 void b3d_get_model_matrix(float out[16]);
 
-/* Set model matrix from m[16] */
+/* Set model matrix from m[16]
+ * @m: input array of 16 floats for matrix data
+ */
 void b3d_set_model_matrix(const float m[16]);
 
 /* Camera functions (angles in RADIANS except where noted) */
 
-/* Set camera position and orientation (yaw, pitch, roll in radians) */
+/* Set camera position and orientation (yaw, pitch, roll in radians)
+ * @x, @y, @z:          camera position in world coordinates
+ * @yaw, @pitch, @roll: camera orientation angles in radians
+ */
 void b3d_set_camera(float x,
                     float y,
                     float z,
@@ -108,15 +137,26 @@ void b3d_set_camera(float x,
                     float pitch,
                     float roll);
 
-/* Point camera at target position (uses current camera position) */
+/* Point camera at target position (uses current camera position)
+ * @x, @y, @z: target position to look at
+ */
 void b3d_look_at(float x, float y, float z);
 
-/* Set field of view (in DEGREES) */
+/* Set field of view (in DEGREES)
+ * @fov_in_degrees: field of view angle in degrees
+ */
 void b3d_set_fov(float fov_in_degrees);
 
 /* Rendering */
 
-/* Render a triangle. Returns 1 if rendered, 0 if culled/clipped away. */
+/* Render a triangle.
+ * @ax, @ay, @az: first vertex coordinates
+ * @bx, @by, @bz: second vertex coordinates
+ * @cx, @cy, @cz: third vertex coordinates
+ * @c:            triangle color in 0xRRGGBB format
+ *
+ * Returns 1 if rendered, 0 if culled/clipped away.
+ */
 int b3d_triangle(float ax,
                  float ay,
                  float az,
@@ -130,12 +170,18 @@ int b3d_triangle(float ax,
 
 /* Utility functions */
 
-/* Project world coordinate to screen coordinate. Returns 1 if in front of
- * camera. */
+/* Project world coordinate to screen coordinate.
+ * @x, @y, @z: world coordinates to project
+ * @sx, @sy:   output screen coordinates
+ *
+ * Returns 1 if in front of camera, 0 otherwise.
+ */
 int b3d_to_screen(float x, float y, float z, int *sx, int *sy);
 
 /* Number of triangles dropped during clipping due to buffer limits (reset by
- * b3d_clear). */
+ * b3d_clear).
+ * Returns number of triangles dropped since last clear.
+ */
 size_t b3d_get_clip_drop_count(void);
 
 /* Public globals (read-only recommended) */

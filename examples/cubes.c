@@ -44,6 +44,14 @@
  *     contain 36 entries to tell the GPU which vertices to connect.
  */
 
+/* Render multiple spinning cubes
+ * @pixels:         output pixel buffer
+ * @depth:          depth buffer
+ * @width:          buffer width
+ * @height:         buffer height
+ * @cube_count:     number of cubes to render
+ * @t:              time parameter for animation
+ */
 static void render_cubes(uint32_t *pixels,
                          b3d_depth_t *depth,
                          int width,

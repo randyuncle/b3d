@@ -16,6 +16,12 @@
 #include "b3d_obj.h"
 #include "utils.h"
 
+/* Main function for OBJ loader example
+ * @argument_count: number of command line arguments
+ * @arguments:      array of command line argument strings
+ *
+ * Returns 0 on success, non-zero on error.
+ */
 int main(int argument_count, char **arguments)
 {
     int width = 800, height = 600;

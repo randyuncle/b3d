@@ -35,6 +35,13 @@ static uint32_t height_color(float h)
     return (r << 16) | (g << 8) | b;
 }
 
+/* Render a heightmap terrain
+ * @pixels: output pixel buffer
+ * @depth:  depth buffer
+ * @width:  buffer width
+ * @height: buffer height
+ * @t:      time parameter for animation
+ */
 static void render_heightmap(uint32_t *pixels,
                              b3d_depth_t *depth,
                              int width,

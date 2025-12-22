@@ -31,6 +31,13 @@ static uint32_t shade_color(float dot)
     return palette[idx];
 }
 
+/* Render a frame of the torus animation
+ * @pixels: output pixel buffer
+ * @depth:  depth buffer
+ * @width:  buffer width
+ * @height: buffer height
+ * @t:      time parameter for animation
+ */
 static void render_frame(uint32_t *pixels,
                          b3d_depth_t *depth,
                          int width,
