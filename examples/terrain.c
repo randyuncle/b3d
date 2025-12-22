@@ -49,7 +49,7 @@ static void render_heightmap(uint32_t *pixels,
                              float t)
 {
     b3d_init(pixels, depth, width, height, 70);
-    b3d_set_camera(0.0f, 1.5f, -8.0f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(&(b3d_camera_t) {0.0f, 1.5f, -8.0f, 0.0f, 0.0f, 0.0f});
 
     float half_grid = (GRID_SIZE - 1) * CELL_SIZE * 0.5f;
     b3d_clear();
@@ -77,9 +77,13 @@ static void render_heightmap(uint32_t *pixels,
 
             /* Winding flipped so culling keeps the patch visible when tilted.
              */
-            b3d_triangle(fx, h00, fz, fx_next, h11, fz_next, fx_next, h10, fz,
+            b3d_triangle(&(b3d_tri_t) {{{fx, h00, fz},
+                                        {fx_next, h11, fz_next},
+                                        {fx_next, h10, fz}}},
                          c0);
-            b3d_triangle(fx, h00, fz, fx, h01, fz_next, fx_next, h11, fz_next,
+            b3d_triangle(&(b3d_tri_t) {{{fx, h00, fz},
+                                        {fx, h01, fz_next},
+                                        {fx_next, h11, fz_next}}},
                          c1);
         }
     }

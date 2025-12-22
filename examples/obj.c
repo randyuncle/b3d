@@ -66,7 +66,7 @@ int main(int argument_count, char **arguments)
     float z_offset = -((max_y - min_y) + max_xz);
 
     b3d_init(pixels, depth, width, height, 70);
-    b3d_set_camera(0, y_offset, z_offset, 0, 0, 0);
+    b3d_set_camera(&(b3d_camera_t) {0, y_offset, z_offset, 0, 0, 0});
 
     if (snapshot) {
         float t = 0.8f;
@@ -80,11 +80,14 @@ int main(int argument_count, char **arguments)
                           3;
             float brightness = (avg_y - min_y) / max_y;
             uint32_t c = (50 + (int) (brightness * 200)) & 0xff;
-            b3d_triangle(mesh.triangles[i + 0], mesh.triangles[i + 1],
-                         mesh.triangles[i + 2], mesh.triangles[i + 3],
-                         mesh.triangles[i + 4], mesh.triangles[i + 5],
-                         mesh.triangles[i + 6], mesh.triangles[i + 7],
-                         mesh.triangles[i + 8], (c << 16 | c << 8 | c));
+            b3d_triangle(
+                &(b3d_tri_t) {{{mesh.triangles[i + 0], mesh.triangles[i + 1],
+                                mesh.triangles[i + 2]},
+                               {mesh.triangles[i + 3], mesh.triangles[i + 4],
+                                mesh.triangles[i + 5]},
+                               {mesh.triangles[i + 6], mesh.triangles[i + 7],
+                                mesh.triangles[i + 8]}}},
+                (c << 16 | c << 8 | c));
         }
         write_png(snapshot, pixels, width, height);
         free(pixels);
@@ -125,11 +128,14 @@ int main(int argument_count, char **arguments)
                           3;
             float brightness = (avg_y - min_y) / max_y;
             uint32_t c = (50 + (int) (brightness * 200)) & 0xff;
-            b3d_triangle(mesh.triangles[i + 0], mesh.triangles[i + 1],
-                         mesh.triangles[i + 2], mesh.triangles[i + 3],
-                         mesh.triangles[i + 4], mesh.triangles[i + 5],
-                         mesh.triangles[i + 6], mesh.triangles[i + 7],
-                         mesh.triangles[i + 8], (c << 16 | c << 8 | c));
+            b3d_triangle(
+                &(b3d_tri_t) {{{mesh.triangles[i + 0], mesh.triangles[i + 1],
+                                mesh.triangles[i + 2]},
+                               {mesh.triangles[i + 3], mesh.triangles[i + 4],
+                                mesh.triangles[i + 5]},
+                               {mesh.triangles[i + 6], mesh.triangles[i + 7],
+                                mesh.triangles[i + 8]}}},
+                (c << 16 | c << 8 | c));
         }
 
         SDL_Delay(1);

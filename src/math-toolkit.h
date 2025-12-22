@@ -202,9 +202,7 @@ static inline b3d_fixed_t b3d_fp_abs(b3d_fixed_t x)
 #define B3D_NEAR_DISTANCE 0.1f
 #define B3D_FAR_DISTANCE 100.0f
 #define B3D_EPSILON 1e-8f /* Near-zero threshold for division guards */
-#define B3D_DEGEN_THRESHOLD                                                \
-    0.0001f                      /* Degenerate triangle/scanline threshold \
-                                  */
+#define B3D_DEGEN_THRESHOLD 0.0001f /* Degenerate trig/scanline threshold */
 #define B3D_CULL_THRESHOLD 0.01f /* Back-face culling dot product threshold */
 #define B3D_DEPTH_FAR 1e30f      /* Depth buffer clear value (far plane) */
 #define B3D_PI 3.1415926536f     /* Pi constant for angle conversions */

@@ -79,6 +79,25 @@ static bool setup_benchmark(int width,
     return true;
 }
 
+/* Helper macro for inline triangle creation */
+#define TRI(x1, y1, z1, x2, y2, z2, x3, y3, z3) \
+    &(b3d_tri_t)                                \
+    {                                           \
+        {                                       \
+            {x1, y1, z1}, {x2, y2, z2},         \
+            {                                   \
+                x3, y3, z3                      \
+            }                                   \
+        }                                       \
+    }
+
+/* Helper macro for inline camera creation */
+#define CAM(px, py, pz, yaw, pitch, roll) \
+    &(b3d_camera_t)                       \
+    {                                     \
+        px, py, pz, yaw, pitch, roll      \
+    }
+
 /* Cube vertices for benchmarking */
 static void render_cube(float angle)
 {
@@ -87,35 +106,40 @@ static void render_cube(float angle)
     b3d_rotate_x(angle * 0.7f);
 
     /* Front face */
-    b3d_triangle(-0.5f, -0.5f, -0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f,
-                 0xfcd0a1);
-    b3d_triangle(-0.5f, -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f, -0.5f, -0.5f,
-                 0xb1b695);
+    b3d_triangle(
+        TRI(-0.5f, -0.5f, -0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f),
+        0xfcd0a1);
+    b3d_triangle(
+        TRI(-0.5f, -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f, -0.5f, -0.5f),
+        0xb1b695);
     /* Right face */
-    b3d_triangle(0.5f, -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f, 0.5f, 0.5f,
+    b3d_triangle(TRI(0.5f, -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f, 0.5f, 0.5f),
                  0x53917e);
-    b3d_triangle(0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, -0.5f, 0.5f,
+    b3d_triangle(TRI(0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, -0.5f, 0.5f),
                  0x63535b);
     /* Back face */
-    b3d_triangle(0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, -0.5f, 0.5f, 0.5f,
+    b3d_triangle(TRI(0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, -0.5f, 0.5f, 0.5f),
                  0x6d1a36);
-    b3d_triangle(0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, -0.5f, 0.5f,
+    b3d_triangle(TRI(0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, -0.5f, 0.5f),
                  0xd4e09b);
     /* Left face */
-    b3d_triangle(-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f, -0.5f,
+    b3d_triangle(TRI(-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f, -0.5f),
                  0xf6f4d2);
-    b3d_triangle(-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, -0.5f, -0.5f, -0.5f, -0.5f,
-                 0xcbdfbd);
+    b3d_triangle(
+        TRI(-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, -0.5f, -0.5f, -0.5f, -0.5f),
+        0xcbdfbd);
     /* Top face */
-    b3d_triangle(-0.5f, 0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f,
+    b3d_triangle(TRI(-0.5f, 0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f),
                  0xf19c79);
-    b3d_triangle(-0.5f, 0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, -0.5f,
+    b3d_triangle(TRI(-0.5f, 0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, -0.5f),
                  0xa44a3f);
     /* Bottom face */
-    b3d_triangle(0.5f, -0.5f, 0.5f, -0.5f, -0.5f, 0.5f, -0.5f, -0.5f, -0.5f,
-                 0x5465ff);
-    b3d_triangle(0.5f, -0.5f, 0.5f, -0.5f, -0.5f, -0.5f, 0.5f, -0.5f, -0.5f,
-                 0x788bff);
+    b3d_triangle(
+        TRI(0.5f, -0.5f, 0.5f, -0.5f, -0.5f, 0.5f, -0.5f, -0.5f, -0.5f),
+        0x5465ff);
+    b3d_triangle(
+        TRI(0.5f, -0.5f, 0.5f, -0.5f, -0.5f, -0.5f, 0.5f, -0.5f, -0.5f),
+        0x788bff);
 }
 
 /*
@@ -135,13 +159,14 @@ static bench_result_t bench_triangles(int width, int height)
     if (!setup_benchmark(width, height, &pixels, &depth))
         return result;
 
-    b3d_set_camera(0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(CAM(0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f));
 
     /* Warmup */
     for (int i = 0; i < WARMUP_ITERATIONS; i++) {
         b3d_clear();
-        b3d_triangle(-0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f, 0.0f, 0.5f, 0.5f,
-                     0xffffff);
+        b3d_triangle(
+            TRI(-0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f, 0.0f, 0.5f, 0.5f),
+            0xffffff);
     }
 
     /* Benchmark - check time before each batch for precision */
@@ -151,9 +176,10 @@ static bench_result_t bench_triangles(int width, int height)
     while (get_time_ms() - start < BENCHMARK_DURATION_MS) {
         b3d_clear();
         for (int i = 0; i < 100; i++) {
-            b3d_triangle(-0.5f + (float) i * 0.001f, -0.5f, 0.5f,
-                         0.5f + (float) i * 0.001f, -0.5f, 0.5f, 0.0f, 0.5f,
-                         0.5f, 0xffffff);
+            b3d_triangle(
+                TRI(-0.5f + (float) i * 0.001f, -0.5f, 0.5f,
+                    0.5f + (float) i * 0.001f, -0.5f, 0.5f, 0.0f, 0.5f, 0.5f),
+                0xffffff);
         }
         iterations += 100;
     }
@@ -188,7 +214,7 @@ static bench_result_t bench_cubes(int width, int height)
     if (!setup_benchmark(width, height, &pixels, &depth))
         return result;
 
-    b3d_set_camera(0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(CAM(0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f));
 
     /* Warmup */
     for (int i = 0; i < WARMUP_ITERATIONS; i++) {
@@ -380,7 +406,7 @@ static bench_result_t bench_to_screen(void)
     if (!setup_benchmark(width, height, &pixels, &depth))
         return result;
 
-    b3d_set_camera(0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(CAM(0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f));
 
     int sx, sy;
 
@@ -430,7 +456,7 @@ static bench_result_t bench_full_frame(int width, int height)
         return result;
     }
 
-    b3d_set_camera(0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(CAM(0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f));
 
     /* Warmup */
     for (int i = 0; i < WARMUP_ITERATIONS; i++) {

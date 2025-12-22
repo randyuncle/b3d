@@ -182,44 +182,41 @@ static inline int b3d_clamp_int(int v, int lo, int hi)
         d = B3D_FP_ADD(d, depth_step);   \
     } while (0)
 
+/* Edge interpolation state for rasterizer */
+typedef struct {
+    b3d_scalar_t x, z;   /* start position */
+    b3d_scalar_t dx, dz; /* delta per scanline */
+    b3d_scalar_t t;      /* interpolation parameter [0, 1] */
+    b3d_scalar_t t_step; /* step per scanline */
+} raster_edge_t;
+
 /* Rasterize one half of a triangle (top or bottom).
- * Left edge always interpolates from (lx,lz) along (dx_left, dz_left).
- * Right edge interpolates from (rx,rz) along (dx_right, dz_right).
- * Alpha/beta are passed by pointer to maintain state across calls.
+ * Left/right edges interpolate from (x,z) along (dx,dz) with parameter t.
  */
 static void raster_half(int y_start,
                         int y_end,
-                        b3d_scalar_t lx,
-                        b3d_scalar_t lz,
-                        b3d_scalar_t dx_left,
-                        b3d_scalar_t dz_left,
-                        b3d_scalar_t rx,
-                        b3d_scalar_t rz,
-                        b3d_scalar_t dx_right,
-                        b3d_scalar_t dz_right,
-                        b3d_scalar_t *alpha,
-                        b3d_scalar_t *beta,
-                        b3d_scalar_t alpha_step,
-                        b3d_scalar_t beta_step,
+                        raster_edge_t *left,
+                        raster_edge_t *right,
                         uint32_t c)
 {
-    b3d_scalar_t t = 0;
+    b3d_scalar_t tmp = 0;
     for (int y = y_start; y < y_end; y++) {
         if (y < 0 || y >= b3d_height) {
-            *alpha += alpha_step, *beta += beta_step;
+            left->t += left->t_step;
+            right->t += right->t_step;
             continue;
         }
 
-        b3d_scalar_t sx = lx + B3D_FP_MUL(dx_left, *alpha);
-        b3d_scalar_t sz = lz + B3D_FP_MUL(dz_left, *alpha);
-        b3d_scalar_t ex = rx + B3D_FP_MUL(dx_right, *beta);
-        b3d_scalar_t ez = rz + B3D_FP_MUL(dz_right, *beta);
+        b3d_scalar_t sx = left->x + B3D_FP_MUL(left->dx, left->t);
+        b3d_scalar_t sz = left->z + B3D_FP_MUL(left->dz, left->t);
+        b3d_scalar_t ex = right->x + B3D_FP_MUL(right->dx, right->t);
+        b3d_scalar_t ez = right->z + B3D_FP_MUL(right->dz, right->t);
         if (sx > ex)
-            SWAP_SPAN(sx, sz, ex, ez, t);
+            SWAP_SPAN(sx, sz, ex, ez, tmp);
         b3d_scalar_t dx = ex - sx;
         if (dx < B3D_FP_DEGEN_THRESHOLD) {
-            *alpha += alpha_step;
-            *beta += beta_step;
+            left->t += left->t_step;
+            right->t += right->t_step;
             continue;
         }
 
@@ -230,8 +227,8 @@ static void raster_half(int y_start,
         start = b3d_clamp_int(start, 0, b3d_width);
         end = b3d_clamp_int(end, 0, b3d_width);
         if (start >= end) {
-            *alpha += alpha_step;
-            *beta += beta_step;
+            left->t += left->t_step;
+            right->t += right->t_step;
             continue;
         }
 
@@ -241,8 +238,8 @@ static void raster_half(int y_start,
         size_t buf_size = (size_t) b3d_height * (size_t) b3d_width;
 
         if (row_base >= buf_size || (size_t) end > buf_size - row_base) {
-            *alpha += alpha_step;
-            *beta += beta_step;
+            left->t += left->t_step;
+            right->t += right->t_step;
             continue;
         }
 
@@ -262,103 +259,113 @@ static void raster_half(int y_start,
             dp++, pp++;
         }
 
-        *alpha += alpha_step, *beta += beta_step;
+        left->t += left->t_step;
+        right->t += right->t_step;
     }
 }
 
+/* Screen-space vertex for rasterization */
+typedef struct {
+    b3d_scalar_t x, y, z;
+} raster_vertex_t;
+
 /* Internal rasterization function */
-static void b3d_rasterize(b3d_scalar_t ax,
-                          b3d_scalar_t ay,
-                          b3d_scalar_t az,
-                          b3d_scalar_t bx,
-                          b3d_scalar_t by,
-                          b3d_scalar_t bz,
-                          b3d_scalar_t cx,
-                          b3d_scalar_t cy,
-                          b3d_scalar_t cz,
-                          uint32_t c)
+static void b3d_rasterize(const raster_vertex_t v[3], uint32_t c)
 {
-    ax = B3D_FP_FLOOR(ax);
-    bx = B3D_FP_FLOOR(bx);
-    cx = B3D_FP_FLOOR(cx);
-    ay = B3D_FP_FLOOR(ay);
-    by = B3D_FP_FLOOR(by);
-    cy = B3D_FP_FLOOR(cy);
+    /* Copy and floor vertices */
+    raster_vertex_t a = {B3D_FP_FLOOR(v[0].x), B3D_FP_FLOOR(v[0].y), v[0].z};
+    raster_vertex_t b = {B3D_FP_FLOOR(v[1].x), B3D_FP_FLOOR(v[1].y), v[1].z};
+    raster_vertex_t cv = {B3D_FP_FLOOR(v[2].x), B3D_FP_FLOOR(v[2].y), v[2].z};
 
     /* Screen-space AABB early-out */
-    b3d_scalar_t min_x = b3d_fp_min(b3d_fp_min(ax, bx), cx);
-    b3d_scalar_t max_x = b3d_fp_max(b3d_fp_max(ax, bx), cx);
-    b3d_scalar_t min_y = b3d_fp_min(b3d_fp_min(ay, by), cy);
-    b3d_scalar_t max_y = b3d_fp_max(b3d_fp_max(ay, by), cy);
+    b3d_scalar_t min_x = b3d_fp_min(b3d_fp_min(a.x, b.x), cv.x);
+    b3d_scalar_t max_x = b3d_fp_max(b3d_fp_max(a.x, b.x), cv.x);
+    b3d_scalar_t min_y = b3d_fp_min(b3d_fp_min(a.y, b.y), cv.y);
+    b3d_scalar_t max_y = b3d_fp_max(b3d_fp_max(a.y, b.y), cv.y);
     if (max_x < 0 || min_x >= B3D_INT_TO_FP(b3d_width) || max_y < 0 ||
         min_y >= B3D_INT_TO_FP(b3d_height)) {
         return;
     }
 
     /* Sort vertices by Y coordinate (bubble sort for 3 elements) */
-    b3d_scalar_t tmp = 0;
-    if (ay > by)
-        SWAP_VERTICES(a, b, tmp);
-    if (ay > cy)
-        SWAP_VERTICES(a, c, tmp);
-    if (by > cy)
-        SWAP_VERTICES(b, c, tmp);
+    raster_vertex_t tmp;
+    if (a.y > b.y) {
+        tmp = a;
+        a = b;
+        b = tmp;
+    }
+    if (a.y > cv.y) {
+        tmp = a;
+        a = cv;
+        cv = tmp;
+    }
+    if (b.y > cv.y) {
+        tmp = b;
+        b = cv;
+        cv = tmp;
+    }
 
     /* Guard against degenerate triangles (division by zero) */
-    b3d_scalar_t dy_total = cy - ay;
-    b3d_scalar_t dy_top = by - ay;
+    b3d_scalar_t dy_total = cv.y - a.y;
+    b3d_scalar_t dy_top = b.y - a.y;
     if (dy_total < B3D_FP_DEGEN_THRESHOLD)
         return;
 
-    /* Precompute triangle gradients */
-    b3d_scalar_t dx_left = cx - ax;
-    b3d_scalar_t dz_left = cz - az;
-    b3d_scalar_t dx_right_top = bx - ax;
-    b3d_scalar_t dz_right_top = bz - az;
-    b3d_scalar_t dx_right_bot = cx - bx;
-    b3d_scalar_t dz_right_bot = cz - bz;
+    /* Setup left edge (A to C, spans entire triangle) */
+    raster_edge_t left = {
+        .x = a.x,
+        .z = a.z,
+        .dx = cv.x - a.x,
+        .dz = cv.z - a.z,
+        .t = 0,
+        .t_step = B3D_FP_DIV(B3D_FP_ONE, dy_total),
+    };
 
-    b3d_scalar_t alpha = 0;
-    b3d_scalar_t alpha_step = B3D_FP_DIV(B3D_FP_ONE, dy_total);
-    b3d_scalar_t beta = 0;
-    b3d_scalar_t beta_step =
-        (dy_top > B3D_FP_DEGEN_THRESHOLD) ? B3D_FP_DIV(B3D_FP_ONE, dy_top) : 0;
+    /* Setup right edge for top half (A to B) */
+    raster_edge_t right = {
+        .x = a.x,
+        .z = a.z,
+        .dx = b.x - a.x,
+        .dz = b.z - a.z,
+        .t = 0,
+        .t_step = (dy_top > B3D_FP_DEGEN_THRESHOLD)
+                      ? B3D_FP_DIV(B3D_FP_ONE, dy_top)
+                      : 0,
+    };
 
     /* Rasterize top half: right edge from A toward B */
-    raster_half(B3D_FP_TO_INT(ay), B3D_FP_TO_INT(by), ax, az, dx_left, dz_left,
-                ax, az, dx_right_top, dz_right_top, &alpha, &beta, alpha_step,
-                beta_step, c);
+    raster_half(B3D_FP_TO_INT(a.y), B3D_FP_TO_INT(b.y), &left, &right, c);
+
+    /* Setup right edge for bottom half (B to C) */
+    b3d_scalar_t dy_bot = cv.y - b.y;
+    right = (raster_edge_t) {
+        .x = b.x,
+        .z = b.z,
+        .dx = cv.x - b.x,
+        .dz = cv.z - b.z,
+        .t = 0,
+        .t_step = (dy_bot > B3D_FP_DEGEN_THRESHOLD)
+                      ? B3D_FP_DIV(B3D_FP_ONE, dy_bot)
+                      : 0,
+    };
 
     /* Rasterize bottom half: right edge from B toward C */
-    b3d_scalar_t dy_bot = cy - by;
-    beta = 0;
-    beta_step =
-        (dy_bot > B3D_FP_DEGEN_THRESHOLD) ? B3D_FP_DIV(B3D_FP_ONE, dy_bot) : 0;
-    raster_half(B3D_FP_TO_INT(by), B3D_FP_TO_INT(cy), ax, az, dx_left, dz_left,
-                bx, bz, dx_right_bot, dz_right_bot, &alpha, &beta, alpha_step,
-                beta_step, c);
+    raster_half(B3D_FP_TO_INT(b.y), B3D_FP_TO_INT(cv.y), &left, &right, c);
 }
 
 #undef PUT_PIXEL
 
 /* Public API */
 
-bool b3d_triangle(float ax,
-                  float ay,
-                  float az,
-                  float bx,
-                  float by,
-                  float bz,
-                  float cx,
-                  float cy,
-                  float cz,
-                  uint32_t c)
+bool b3d_triangle(const b3d_tri_t *tri, uint32_t c)
 {
-    if (!b3d_pixels || !b3d_depth)
+    if (!tri || !b3d_pixels || !b3d_depth)
         return false;
 
     b3d_triangle_t t =
-        (b3d_triangle_t) {{{ax, ay, az, 1}, {bx, by, bz, 1}, {cx, cy, cz, 1}}};
+        (b3d_triangle_t) {{{tri->v[0].x, tri->v[0].y, tri->v[0].z, 1},
+                           {tri->v[1].x, tri->v[1].y, tri->v[1].z, 1},
+                           {tri->v[2].x, tri->v[2].y, tri->v[2].z, 1}}};
 #ifdef B3D_NO_CULLING
     /* Lazy matrix computation: use cached model*view when culling disabled */
     b3d_update_model_view();
@@ -426,12 +433,15 @@ bool b3d_triangle(float ax,
         return false;
 
     for (int i = 0; i < src_count; ++i) {
-        b3d_rasterize(
-            B3D_FLOAT_TO_FP(src[i].p[0].x), B3D_FLOAT_TO_FP(src[i].p[0].y),
-            B3D_FLOAT_TO_FP(src[i].p[0].z), B3D_FLOAT_TO_FP(src[i].p[1].x),
-            B3D_FLOAT_TO_FP(src[i].p[1].y), B3D_FLOAT_TO_FP(src[i].p[1].z),
-            B3D_FLOAT_TO_FP(src[i].p[2].x), B3D_FLOAT_TO_FP(src[i].p[2].y),
-            B3D_FLOAT_TO_FP(src[i].p[2].z), c);
+        raster_vertex_t rv[3] = {
+            {B3D_FLOAT_TO_FP(src[i].p[0].x), B3D_FLOAT_TO_FP(src[i].p[0].y),
+             B3D_FLOAT_TO_FP(src[i].p[0].z)},
+            {B3D_FLOAT_TO_FP(src[i].p[1].x), B3D_FLOAT_TO_FP(src[i].p[1].y),
+             B3D_FLOAT_TO_FP(src[i].p[1].z)},
+            {B3D_FLOAT_TO_FP(src[i].p[2].x), B3D_FLOAT_TO_FP(src[i].p[2].y),
+             B3D_FLOAT_TO_FP(src[i].p[2].z)},
+        };
+        b3d_rasterize(rv, c);
     }
     return true;
 }
@@ -481,19 +491,17 @@ void b3d_set_fov(float fov_in_degrees)
                             B3D_NEAR_DISTANCE, B3D_FAR_DISTANCE);
 }
 
-void b3d_set_camera(float x,
-                    float y,
-                    float z,
-                    float yaw,
-                    float pitch,
-                    float roll)
+void b3d_set_camera(const b3d_camera_t *cam)
 {
-    b3d_camera = (b3d_vec_t) {x, y, z, 1};
+    if (!cam)
+        return;
+
+    b3d_camera = (b3d_vec_t) {cam->x, cam->y, cam->z, 1};
     b3d_vec_t up = {0, 1, 0, 1};
     b3d_vec_t target = {0, 0, 1, 1};
-    up = b3d_mat_mul_vec(b3d_mat_rot_z(roll), up);
-    target = b3d_mat_mul_vec(b3d_mat_rot_x(pitch), target);
-    target = b3d_mat_mul_vec(b3d_mat_rot_y(yaw), target);
+    up = b3d_mat_mul_vec(b3d_mat_rot_z(cam->roll), up);
+    target = b3d_mat_mul_vec(b3d_mat_rot_x(cam->pitch), target);
+    target = b3d_mat_mul_vec(b3d_mat_rot_y(cam->yaw), target);
     target = b3d_vec_add(b3d_camera, target);
     b3d_view = b3d_mat_qinv(b3d_mat_point_at(b3d_camera, target, up));
     b3d_model_view_dirty = true;
@@ -560,7 +568,7 @@ bool b3d_init(uint32_t *pixel_buffer,
     b3d_reset();
     b3d_proj = b3d_mat_proj(fov, b3d_height / (float) b3d_width,
                             B3D_NEAR_DISTANCE, B3D_FAR_DISTANCE);
-    b3d_set_camera(0, 0, 0, 0, 0, 0);
+    b3d_set_camera(&(b3d_camera_t) {0, 0, 0, 0, 0, 0});
     return true;
 }
 

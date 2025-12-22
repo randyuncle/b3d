@@ -275,7 +275,7 @@ static void render_frame(uint32_t *pixels,
     float z_offset = -(model_size * 2.5f);
 
     b3d_init(pixels, depth, width, height, 60.0f);
-    b3d_set_camera(0.0f, 0.0f, z_offset, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(&(b3d_camera_t) {0.0f, 0.0f, z_offset, 0.0f, 0.0f, 0.0f});
     b3d_clear();
 
     b3d_reset();
@@ -313,8 +313,12 @@ static void render_frame(uint32_t *pixels,
             float fy1 = fy - scale;
 
             /* Standing image: X=horizontal, Y=vertical, Z=depth */
-            b3d_triangle(fx, fy, d00, fx1, fy, d10, fx1, fy1, d11, c00);
-            b3d_triangle(fx, fy, d00, fx1, fy1, d11, fx, fy1, d01, c11);
+            b3d_triangle(
+                &(b3d_tri_t) {{{fx, fy, d00}, {fx1, fy, d10}, {fx1, fy1, d11}}},
+                c00);
+            b3d_triangle(
+                &(b3d_tri_t) {{{fx, fy, d00}, {fx1, fy1, d11}, {fx, fy1, d01}}},
+                c11);
         }
     }
 }

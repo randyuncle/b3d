@@ -43,6 +43,24 @@ typedef int32_t b3d_depth_t;
 /* Matrix stack size for push/pop operations */
 #define B3D_MATRIX_STACK_SIZE 16
 
+/* Public API types for efficient parameter passing */
+
+/* 3D point/vertex */
+typedef struct {
+    float x, y, z;
+} b3d_point_t;
+
+/* Triangle defined by 3 vertices */
+typedef struct {
+    b3d_point_t v[3];
+} b3d_tri_t;
+
+/* Camera parameters */
+typedef struct {
+    float x, y, z;          /* position */
+    float yaw, pitch, roll; /* orientation in radians */
+} b3d_camera_t;
+
 /* Initialization and clearing */
 
 /* Initialize the renderer with pixel/depth buffers and field of view (degrees).
@@ -129,15 +147,9 @@ void b3d_set_model_matrix(const float m[16]);
 /* Camera functions (angles in RADIANS except where noted) */
 
 /* Set camera position and orientation (yaw, pitch, roll in radians)
- * @x, @y, @z:          camera position in world coordinates
- * @yaw, @pitch, @roll: camera orientation angles in radians
+ * @cam: pointer to camera parameters
  */
-void b3d_set_camera(float x,
-                    float y,
-                    float z,
-                    float yaw,
-                    float pitch,
-                    float roll);
+void b3d_set_camera(const b3d_camera_t *cam);
 
 /* Point camera at target position (uses current camera position)
  * @x, @y, @z: target position to look at
@@ -152,23 +164,12 @@ void b3d_set_fov(float fov_in_degrees);
 /* Rendering */
 
 /* Render a triangle.
- * @ax, @ay, @az:    first vertex coordinates
- * @bx, @by, @bz:    second vertex coordinates
- * @cx, @cy, @cz:    third vertex coordinates
- * @c:               triangle color in 0xRRGGBB format
+ * @tri: pointer to triangle with 3 vertices
+ * @c:   triangle color in 0xRRGGBB format
  *
  * Returns true if rendered, false if culled/clipped away.
  */
-bool b3d_triangle(float ax,
-                  float ay,
-                  float az,
-                  float bx,
-                  float by,
-                  float bz,
-                  float cx,
-                  float cy,
-                  float cz,
-                  uint32_t c);
+bool b3d_triangle(const b3d_tri_t *tri, uint32_t c);
 
 /* Utility functions */
 

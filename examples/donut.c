@@ -45,7 +45,7 @@ static void render_frame(uint32_t *pixels,
                          float t)
 {
     b3d_init(pixels, depth, width, height, 70.0f);
-    b3d_set_camera(0.0f, 0.0f, -6.0f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(&(b3d_camera_t) {0.0f, 0.0f, -6.0f, 0.0f, 0.0f, 0.0f});
     b3d_clear();
 
     b3d_reset();
@@ -124,8 +124,14 @@ static void render_frame(uint32_t *pixels,
             uint32_t c0 = shade_color(dot0);
             uint32_t c1 = shade_color(dot1);
 
-            b3d_triangle(x00, y00, z00, x10, y10, z10, x11, y11, z11, c0);
-            b3d_triangle(x00, y00, z00, x11, y11, z11, x01, y01, z01, c1);
+            b3d_triangle(
+                &(b3d_tri_t) {
+                    {{x00, y00, z00}, {x10, y10, z10}, {x11, y11, z11}}},
+                c0);
+            b3d_triangle(
+                &(b3d_tri_t) {
+                    {{x00, y00, z00}, {x11, y11, z11}, {x01, y01, z01}}},
+                c1);
         }
     }
 }

@@ -126,92 +126,92 @@ TEST(api_transform)
     float initial_matrix[16];
     b3d_get_model_matrix(initial_matrix);
     /* Check if it's identity matrix (diagonal should be 1, others 0) */
-    ASSERT(fabsf(initial_matrix[0] - 1.0f) < 0.01f);   // m[0][0]
-    ASSERT(fabsf(initial_matrix[5] - 1.0f) < 0.01f);   // m[1][1]
-    ASSERT(fabsf(initial_matrix[10] - 1.0f) < 0.01f);  // m[2][2]
-    ASSERT(fabsf(initial_matrix[15] - 1.0f) < 0.01f);  // m[3][3]
+    ASSERT(fabsf(initial_matrix[0] - 1.0f) < 0.01f);  /* m[0][0] */
+    ASSERT(fabsf(initial_matrix[5] - 1.0f) < 0.01f);  /* m[1][1] */
+    ASSERT(fabsf(initial_matrix[10] - 1.0f) < 0.01f); /* m[2][2] */
+    ASSERT(fabsf(initial_matrix[15] - 1.0f) < 0.01f); /* m[3][3] */
     /* Check that off-diagonal elements are approximately 0 */
-    ASSERT(fabsf(initial_matrix[1]) < 0.01f);   // m[0][1]
-    ASSERT(fabsf(initial_matrix[2]) < 0.01f);   // m[0][2]
-    ASSERT(fabsf(initial_matrix[3]) < 0.01f);   // m[0][3]
-    ASSERT(fabsf(initial_matrix[4]) < 0.01f);   // m[1][0]
-    ASSERT(fabsf(initial_matrix[6]) < 0.01f);   // m[1][2]
-    ASSERT(fabsf(initial_matrix[7]) < 0.01f);   // m[1][3]
-    ASSERT(fabsf(initial_matrix[8]) < 0.01f);   // m[2][0]
-    ASSERT(fabsf(initial_matrix[9]) < 0.01f);   // m[2][1]
-    ASSERT(fabsf(initial_matrix[11]) < 0.01f);  // m[2][3]
-    ASSERT(fabsf(initial_matrix[12]) < 0.01f);  // m[3][0]
-    ASSERT(fabsf(initial_matrix[13]) < 0.01f);  // m[3][1]
-    ASSERT(fabsf(initial_matrix[14]) < 0.01f);  // m[3][2]
+    ASSERT(fabsf(initial_matrix[1]) < 0.01f);  /* m[0][1] */
+    ASSERT(fabsf(initial_matrix[2]) < 0.01f);  /* m[0][2] */
+    ASSERT(fabsf(initial_matrix[3]) < 0.01f);  /* m[0][3] */
+    ASSERT(fabsf(initial_matrix[4]) < 0.01f);  /* m[1][0] */
+    ASSERT(fabsf(initial_matrix[6]) < 0.01f);  /* m[1][2] */
+    ASSERT(fabsf(initial_matrix[7]) < 0.01f);  /* m[1][3] */
+    ASSERT(fabsf(initial_matrix[8]) < 0.01f);  /* m[2][0] */
+    ASSERT(fabsf(initial_matrix[9]) < 0.01f);  /* m[2][1] */
+    ASSERT(fabsf(initial_matrix[11]) < 0.01f); /* m[2][3] */
+    ASSERT(fabsf(initial_matrix[12]) < 0.01f); /* m[3][0] */
+    ASSERT(fabsf(initial_matrix[13]) < 0.01f); /* m[3][1] */
+    ASSERT(fabsf(initial_matrix[14]) < 0.01f); /* m[3][2] */
 
     /* Test b3d_translate */
     b3d_translate(1.0f, 2.0f, 3.0f);
     float matrix[16];
     b3d_get_model_matrix(matrix);
     /* Translation should affect the last column */
-    ASSERT(fabsf(matrix[12] - 1.0f) < 0.01f);  // tx
-    ASSERT(fabsf(matrix[13] - 2.0f) < 0.01f);  // ty
-    ASSERT(fabsf(matrix[14] - 3.0f) < 0.01f);  // tz
+    ASSERT(fabsf(matrix[12] - 1.0f) < 0.01f); /* tx */
+    ASSERT(fabsf(matrix[13] - 2.0f) < 0.01f); /* ty */
+    ASSERT(fabsf(matrix[14] - 3.0f) < 0.01f); /* tz */
 
     /* Test b3d_rotate_x - use smaller angle for more predictable results */
     b3d_reset();
-    b3d_rotate_x(0.1f);  // Small angle
+    b3d_rotate_x(0.1f); /* Small angle */
     float rot_x_matrix[16];
     b3d_get_model_matrix(rot_x_matrix);
     /* Based on debug output, after b3d_rotate_x(0.1f): */
-    /* [5]≈0.995004 (cos), [6]≈0.099833 (sin), [9]≈-0.099833 (-sin), */
-    /* [10]≈0.995004 (cos) */
+    /* [5]~0.995004 (cos), [6]~0.099833 (sin), [9]~-0.099833 (-sin), */
+    /* [10]~0.995004 (cos) */
     ASSERT(fabsf(rot_x_matrix[5] - 0.995004f) <
-           0.01f);  // m[1][1] should be ~cos(0.1)
+           0.01f); /* m[1][1] should be ~cos(0.1) */
     ASSERT(fabsf(rot_x_matrix[6] - 0.099833f) <
-           0.01f);  // m[1][2] should be ~sin(0.1)
+           0.01f); /* m[1][2] should be ~sin(0.1) */
     ASSERT(fabsf(rot_x_matrix[9] + 0.099833f) <
-           0.01f);  // m[2][1] should be ~-sin(0.1)
+           0.01f); /* m[2][1] should be ~-sin(0.1) */
     ASSERT(fabsf(rot_x_matrix[10] - 0.995004f) <
-           0.01f);  // m[2][2] should be ~cos(0.1)
+           0.01f); /* m[2][2] should be ~cos(0.1) */
 
     /* Test b3d_rotate_y - use smaller angle for more predictable results */
     b3d_reset();
-    b3d_rotate_y(0.1f);  // Small angle
+    b3d_rotate_y(0.1f); /* Small angle */
     float rot_y_matrix[16];
     b3d_get_model_matrix(rot_y_matrix);
     /* Based on debug output, after b3d_rotate_y(0.1f): */
-    /* [0]≈0.995004 (cos), [2]≈0.099833 (sin), [8]≈-0.099833 (-sin), */
-    /* [10]≈0.995004 (cos) */
+    /* [0]~0.995004 (cos), [2]~0.099833 (sin), [8]~-0.099833 (-sin), */
+    /* [10]~0.995004 (cos) */
     ASSERT(fabsf(rot_y_matrix[0] - 0.995004f) <
-           0.01f);  // m[0][0] should be ~cos(0.1)
+           0.01f); /* m[0][0] should be ~cos(0.1) */
     ASSERT(fabsf(rot_y_matrix[2] - 0.099833f) <
-           0.01f);  // m[0][2] should be ~sin(0.1)
+           0.01f); /* m[0][2] should be ~sin(0.1) */
     ASSERT(fabsf(rot_y_matrix[8] + 0.099833f) <
-           0.01f);  // m[2][0] should be ~-sin(0.1)
+           0.01f); /* m[2][0] should be ~-sin(0.1) */
     ASSERT(fabsf(rot_y_matrix[10] - 0.995004f) <
-           0.01f);  // m[2][2] should be ~cos(0.1)
+           0.01f); /* m[2][2] should be ~cos(0.1) */
 
     /* Test b3d_rotate_z - use smaller angle for more predictable results */
     b3d_reset();
-    b3d_rotate_z(0.1f);  // Small angle
+    b3d_rotate_z(0.1f); /* Small angle */
     float rot_z_matrix[16];
     b3d_get_model_matrix(rot_z_matrix);
     /* Based on debug output, after b3d_rotate_z(0.1f): */
-    /* [0]≈0.995004 (cos), [1]≈0.099833 (sin), [4]≈-0.099833 (-sin), */
-    /* [5]≈0.995004 (cos) */
+    /* [0]~0.995004 (cos), [1]~0.099833 (sin), [4]~-0.099833 (-sin), */
+    /* [5]~0.995004 (cos) */
     ASSERT(fabsf(rot_z_matrix[0] - 0.995004f) <
-           0.01f);  // m[0][0] should be ~cos(0.1)
+           0.01f); /* m[0][0] should be ~cos(0.1) */
     ASSERT(fabsf(rot_z_matrix[1] - 0.099833f) <
-           0.01f);  // m[0][1] should be ~sin(0.1)
+           0.01f); /* m[0][1] should be ~sin(0.1) */
     ASSERT(fabsf(rot_z_matrix[4] + 0.099833f) <
-           0.01f);  // m[1][0] should be ~-sin(0.1)
+           0.01f); /* m[1][0] should be ~-sin(0.1) */
     ASSERT(fabsf(rot_z_matrix[5] - 0.995004f) <
-           0.01f);  // m[1][1] should be ~cos(0.1)
+           0.01f); /* m[1][1] should be ~cos(0.1) */
 
     /* Test b3d_scale */
     b3d_reset();
     b3d_scale(2.0f, 3.0f, 4.0f);
     float scale_matrix[16];
     b3d_get_model_matrix(scale_matrix);
-    ASSERT(fabsf(scale_matrix[0] - 2.0f) < 0.01f);   // m[0][0] should be 2
-    ASSERT(fabsf(scale_matrix[5] - 3.0f) < 0.01f);   // m[1][1] should be 3
-    ASSERT(fabsf(scale_matrix[10] - 4.0f) < 0.01f);  // m[2][2] should be 4
+    ASSERT(fabsf(scale_matrix[0] - 2.0f) < 0.01f);  /* m[0][0] should be 2 */
+    ASSERT(fabsf(scale_matrix[5] - 3.0f) < 0.01f);  /* m[1][1] should be 3 */
+    ASSERT(fabsf(scale_matrix[10] - 4.0f) < 0.01f); /* m[2][2] should be 4 */
 
     free(pixels);
     free(depth);
@@ -231,7 +231,7 @@ TEST(api_camera)
     b3d_clear();
 
     /* Test b3d_set_camera */
-    b3d_set_camera(1.0f, 2.0f, 3.0f, 0.1f, 0.2f, 0.3f);
+    b3d_set_camera(&(b3d_camera_t) {1.0f, 2.0f, 3.0f, 0.1f, 0.2f, 0.3f});
     /* Just verify that the function doesn't crash and sets internal state */
 
     /* Test b3d_look_at */
@@ -264,36 +264,36 @@ TEST(api_matrix_stack)
     b3d_translate(1.0f, 0.0f, 0.0f);
     float matrix_before[16];
     b3d_get_model_matrix(matrix_before);
-    ASSERT(matrix_before[12] == 1.0f);  // tx should be 1
+    ASSERT(matrix_before[12] == 1.0f); /* tx should be 1 */
 
     /* Push current matrix */
-    int push_result = b3d_push_matrix();
-    ASSERT(push_result == 1);  // Should succeed
+    bool push_result = b3d_push_matrix();
+    ASSERT(push_result == true); /* Should succeed */
 
     /* Modify matrix */
     b3d_translate(2.0f, 0.0f, 0.0f);
     float matrix_after[16];
     b3d_get_model_matrix(matrix_after);
-    ASSERT(matrix_after[12] == 3.0f);  // tx should be 3 (1+2)
+    ASSERT(matrix_after[12] == 3.0f); /* tx should be 3 (1+2) */
 
     /* Pop matrix - should restore previous state */
-    int pop_result = b3d_pop_matrix();
-    ASSERT(pop_result == 1);  // Should succeed
+    bool pop_result = b3d_pop_matrix();
+    ASSERT(pop_result == true); /* Should succeed */
 
     float matrix_restored[16];
     b3d_get_model_matrix(matrix_restored);
     ASSERT(fabsf(matrix_restored[12] - 1.0f) <
-           0.01f);  // tx should be back to 1
+           0.01f); /* tx should be back to 1 */
 
     /* Test stack overflow protection */
     for (int i = 0; i < B3D_MATRIX_STACK_SIZE + 5; i++) {
-        if (b3d_push_matrix() == 0)
+        if (b3d_push_matrix() == false)
             break; /* Stack is full, this is expected */
     }
 
     /* Test stack underflow protection */
     for (int i = 0; i < B3D_MATRIX_STACK_SIZE + 5; i++) {
-        if (b3d_pop_matrix() == 0)
+        if (b3d_pop_matrix() == false)
             break; /* Stack is empty, this is expected */
     }
 
@@ -317,7 +317,7 @@ TEST(api_render_ascii)
     /* Render a simple scene */
     bool init_ok = b3d_init(pixels, depth, width, height, 65.0f);
     ASSERT(init_ok);
-    b3d_set_camera(0.0f, 0.0f, -2.3f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(&(b3d_camera_t) {0.0f, 0.0f, -2.3f, 0.0f, 0.0f, 0.0f});
     b3d_clear();
 
     b3d_reset();
@@ -325,30 +325,54 @@ TEST(api_render_ascii)
     b3d_rotate_x(0.3f);
 
     /* Render a simple cube */
-    b3d_triangle(-0.5f, -0.5f, -0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f,
-                 0xfcd0a1);
-    b3d_triangle(-0.5f, -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f, -0.5f, -0.5f,
-                 0xb1b695);
-    b3d_triangle(0.5f, -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f, 0.5f, 0.5f,
-                 0x53917e);
-    b3d_triangle(0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, -0.5f, 0.5f,
-                 0x63535b);
-    b3d_triangle(0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, -0.5f, 0.5f, 0.5f,
-                 0x6d1a36);
-    b3d_triangle(0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, -0.5f, 0.5f,
-                 0xd4e09b);
-    b3d_triangle(-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f, -0.5f,
-                 0xf6f4d2);
-    b3d_triangle(-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, -0.5f, -0.5f, -0.5f, -0.5f,
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{-0.5f, -0.5f, -0.5f}, {-0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}}},
+        0xfcd0a1);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}}},
+        0xb1b695);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}}},
+        0x53917e);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}, {0.5f, -0.5f, 0.5f}}},
+        0x63535b);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{0.5f, -0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}}},
+        0x6d1a36);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{0.5f, -0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}}},
+        0xd4e09b);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{-0.5f, -0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, -0.5f}}},
+        0xf6f4d2);
+    b3d_triangle(&(b3d_tri_t) {{{-0.5f, -0.5f, 0.5f},
+                                {-0.5f, 0.5f, -0.5f},
+                                {-0.5f, -0.5f, -0.5f}}},
                  0xcbdfbd);
-    b3d_triangle(-0.5f, 0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f,
-                 0xf19c79);
-    b3d_triangle(-0.5f, 0.5f, -0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, -0.5f,
-                 0xa44a3f);
-    b3d_triangle(0.5f, -0.5f, 0.5f, -0.5f, -0.5f, 0.5f, -0.5f, -0.5f, -0.5f,
-                 0x5465ff);
-    b3d_triangle(0.5f, -0.5f, 0.5f, -0.5f, -0.5f, -0.5f, 0.5f, -0.5f, -0.5f,
-                 0x788bff);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{-0.5f, 0.5f, -0.5f}, {-0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}}},
+        0xf19c79);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{-0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, -0.5f}}},
+        0xa44a3f);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f}}},
+        0x5465ff);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}}},
+        0x788bff);
 
     /* Convert to ASCII and verify we have some non-empty output */
     size_t non_empty_chars = 0;
@@ -384,21 +408,21 @@ TEST(api_to_screen)
     /* Test b3d_to_screen - should project world coordinates to screen */
     int sx, sy;
     /* Set up camera first */
-    b3d_set_camera(0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-                   0.0f);  // Position camera at origin
-    int result =
-        b3d_to_screen(0.0f, 0.0f, 1.0f, &sx, &sy);  // Point in front of camera
-    /* This should succeed (return 1) since (0,0,1) is in front of camera */
-    ASSERT(result == 1);
+    b3d_set_camera(
+        &(b3d_camera_t) {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}); /* At origin */
+    bool result = b3d_to_screen(0.0f, 0.0f, 1.0f, &sx,
+                                &sy); /* Point in front of camera */
+    /* This should succeed (return true) since (0,0,1) is in front of camera */
+    ASSERT(result == true);
     /* The point should be projected to screen bounds */
     ASSERT(sx >= 0 && sx < width);
     ASSERT(sy >= 0 && sy < height);
 
-    /* Test with NULL pointers - should return 0 */
+    /* Test with NULL pointers - should return false */
     result = b3d_to_screen(0.0f, 0.0f, 0.0f, NULL, &sy);
-    ASSERT(result == 0);
+    ASSERT(result == false);
     result = b3d_to_screen(0.0f, 0.0f, 0.0f, &sx, NULL);
-    ASSERT(result == 0);
+    ASSERT(result == false);
 
     free(pixels);
     free(depth);
@@ -421,8 +445,10 @@ TEST(api_clip_drop_count)
     size_t initial_count = b3d_get_clip_drop_count();
 
     /* Render a valid triangle */
-    b3d_triangle(0.0f, 0.0f, 0.5f, 0.5f, 0.5f, 0.5f, -0.5f, 0.5f, 0.5f,
-                 0xffffff);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{0.0f, 0.0f, 0.5f}, {0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}}},
+        0xffffff);
 
     /* Count should still be the same (no clipping for valid triangle) */
     size_t after_count = b3d_get_clip_drop_count();
@@ -519,7 +545,7 @@ TEST(api_triangle_return)
 
     bool init_ok = b3d_init(pixels, depth, width, height, 65.0f);
     ASSERT(init_ok);
-    b3d_set_camera(0.0f, 0.0f, -2.3f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(&(b3d_camera_t) {0.0f, 0.0f, -2.3f, 0.0f, 0.0f, 0.0f});
     b3d_clear();
     b3d_reset();
 
@@ -527,8 +553,10 @@ TEST(api_triangle_return)
     /* This is the same setup as api_render_ascii which we know works */
     b3d_rotate_y(0.5f);
     b3d_rotate_x(0.3f);
-    bool result = b3d_triangle(-0.5f, -0.5f, -0.5f, -0.5f, 0.5f, -0.5f, 0.5f,
-                               0.5f, -0.5f, 0xfcd0a1);
+    bool result = b3d_triangle(
+        &(b3d_tri_t) {
+            {{-0.5f, -0.5f, -0.5f}, {-0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}}},
+        0xfcd0a1);
     ASSERT(result == true);
 
     free(pixels);
@@ -550,7 +578,7 @@ TEST(api_degenerate_triangles)
 
     bool init_ok = b3d_init(pixels, depth, width, height, 65.0f);
     ASSERT(init_ok);
-    b3d_set_camera(0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(&(b3d_camera_t) {0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f});
     b3d_clear();
     b3d_reset();
 
@@ -560,12 +588,16 @@ TEST(api_degenerate_triangles)
      */
 
     /* Collinear points (line) - minimal area, handled by rasterizer */
-    (void) b3d_triangle(0.0f, 0.0f, 0.5f, 0.5f, 0.0f, 0.5f, 1.0f, 0.0f, 0.5f,
-                        0xffffff);
+    (void) b3d_triangle(
+        &(b3d_tri_t) {
+            {{0.0f, 0.0f, 0.5f}, {0.5f, 0.0f, 0.5f}, {1.0f, 0.0f, 0.5f}}},
+        0xffffff);
 
     /* All same point - zero area triangle */
-    (void) b3d_triangle(0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.5f,
-                        0xffffff);
+    (void) b3d_triangle(
+        &(b3d_tri_t) {
+            {{0.0f, 0.0f, 0.5f}, {0.0f, 0.0f, 0.5f}, {0.0f, 0.0f, 0.5f}}},
+        0xffffff);
 
     /* Verify no pixels were written - check all pixels for robustness */
     const size_t pixel_count = (size_t) width * (size_t) height;
@@ -596,7 +628,7 @@ TEST(api_near_plane_clip)
 
     bool init_ok = b3d_init(pixels, depth, width, height, 65.0f);
     ASSERT(init_ok);
-    b3d_set_camera(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(&(b3d_camera_t) {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f});
     b3d_clear();
     b3d_reset();
 
@@ -608,8 +640,10 @@ TEST(api_near_plane_clip)
      */
 
     /* First, render a fully visible triangle as baseline */
-    bool result1 = b3d_triangle(-0.5f, -0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.5f,
-                                -0.5f, 0.5f, 0x00ff00);
+    bool result1 = b3d_triangle(
+        &(b3d_tri_t) {
+            {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.5f, 0.5f}, {0.5f, -0.5f, 0.5f}}},
+        0x00ff00);
 
     /* Count pixels after first triangle */
     size_t pixels_after_first = 0;
@@ -626,8 +660,10 @@ TEST(api_near_plane_clip)
      * and produce no pixel output.
      */
     b3d_clear();
-    bool clipped = b3d_triangle(-0.5f, -0.5f, 0.05f, 0.0f, 0.5f, 0.05f, 0.5f,
-                                -0.5f, 0.05f, 0xff0000);
+    bool clipped = b3d_triangle(
+        &(b3d_tri_t) {
+            {{-0.5f, -0.5f, 0.05f}, {0.0f, 0.5f, 0.05f}, {0.5f, -0.5f, 0.05f}}},
+        0xff0000);
     size_t pixels_after_clipped = 0;
     for (size_t i = 0; i < pixel_count; i++) {
         if (pixels[i] != 0)
@@ -638,8 +674,10 @@ TEST(api_near_plane_clip)
 
     /* Triangle straddling near plane: should be clipped but still render. */
     b3d_clear();
-    bool clipped_visible = b3d_triangle(-0.5f, -0.5f, 0.05f, 0.0f, 0.5f, 0.2f,
-                                        0.5f, -0.5f, 0.2f, 0x0000ff);
+    bool clipped_visible = b3d_triangle(
+        &(b3d_tri_t) {
+            {{-0.5f, -0.5f, 0.05f}, {0.0f, 0.5f, 0.2f}, {0.5f, -0.5f, 0.2f}}},
+        0x0000ff);
     size_t pixels_after_clip = 0;
     for (size_t i = 0; i < pixel_count; i++) {
         if (pixels[i] != 0)
@@ -666,31 +704,31 @@ TEST(api_to_screen_extended)
     ASSERT(depth);
 
     b3d_init(pixels, depth, width, height, 65.0f);
-    b3d_set_camera(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(&(b3d_camera_t) {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f});
     b3d_clear();
 
     int sx, sy;
 
     /* Point directly in front - should project to center */
-    int result = b3d_to_screen(0.0f, 0.0f, 1.0f, &sx, &sy);
-    ASSERT(result == 1);
+    bool result = b3d_to_screen(0.0f, 0.0f, 1.0f, &sx, &sy);
+    ASSERT(result == true);
     ASSERT(sx >= width / 2 - 2 && sx <= width / 2 + 2);
     ASSERT(sy >= height / 2 - 2 && sy <= height / 2 + 2);
 
     /* Point to the right - should project to right side */
     result = b3d_to_screen(1.0f, 0.0f, 1.0f, &sx, &sy);
-    ASSERT(result == 1);
+    ASSERT(result == true);
     ASSERT(sx > width / 2);
 
     /* Point above - should project to upper half (y inverted in screen coords)
      */
     result = b3d_to_screen(0.0f, 1.0f, 1.0f, &sx, &sy);
-    ASSERT(result == 1);
+    ASSERT(result == true);
     ASSERT(sy < height / 2);
 
     /* Point behind camera - should fail */
     result = b3d_to_screen(0.0f, 0.0f, -1.0f, &sx, &sy);
-    ASSERT(result == 0);
+    ASSERT(result == false);
 
     free(pixels);
     free(depth);
@@ -749,7 +787,7 @@ TEST(api_depth_buffer)
 
     bool init_ok = b3d_init(pixels, depth, width, height, 65.0f);
     ASSERT(init_ok);
-    b3d_set_camera(0.0f, 0.0f, -5.0f, 0.0f, 0.0f, 0.0f);
+    b3d_set_camera(&(b3d_camera_t) {0.0f, 0.0f, -5.0f, 0.0f, 0.0f, 0.0f});
     b3d_clear();
     b3d_reset();
 
@@ -761,8 +799,10 @@ TEST(api_depth_buffer)
 
     /* Render a large green triangle far from camera (z=0.5) */
     uint32_t far_color = 0x00ff00;
-    b3d_triangle(-1.0f, -1.0f, 0.5f, 0.0f, 1.0f, 0.5f, 1.0f, -1.0f, 0.5f,
-                 far_color);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{-1.0f, -1.0f, 0.5f}, {0.0f, 1.0f, 0.5f}, {1.0f, -1.0f, 0.5f}}},
+        far_color);
 
     /* Check that center pixel is the far color */
     size_t center =
@@ -772,8 +812,10 @@ TEST(api_depth_buffer)
 
     /* Render a smaller red triangle closer to camera (z=0.0) */
     uint32_t near_color = 0xff0000;
-    b3d_triangle(-0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f,
-                 near_color);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.5f, 0.0f}, {0.5f, -0.5f, 0.0f}}},
+        near_color);
 
     /* Center pixel should now be the near color (closer triangle wins) */
     uint32_t center_after = pixels[center];
@@ -783,12 +825,16 @@ TEST(api_depth_buffer)
     b3d_clear();
 
     /* Render small red triangle first (closer, z=0.0) */
-    b3d_triangle(-0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f,
-                 near_color);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.5f, 0.0f}, {0.5f, -0.5f, 0.0f}}},
+        near_color);
 
     /* Render large green triangle second (farther, z=0.5) */
-    b3d_triangle(-1.0f, -1.0f, 0.5f, 0.0f, 1.0f, 0.5f, 1.0f, -1.0f, 0.5f,
-                 far_color);
+    b3d_triangle(
+        &(b3d_tri_t) {
+            {{-1.0f, -1.0f, 0.5f}, {0.0f, 1.0f, 0.5f}, {1.0f, -1.0f, 0.5f}}},
+        far_color);
 
     /* Center pixel should STILL be the near color due to depth test */
     uint32_t center_reverse = pixels[center];

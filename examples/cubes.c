@@ -60,8 +60,100 @@ static void render_cubes(uint32_t *pixels,
                          float t)
 {
     b3d_init(pixels, depth, width, height, 60);
-    b3d_set_camera(0, 0, -2, 0, 0, 0);
+    b3d_set_camera(&(b3d_camera_t) {0, 0, -2, 0, 0, 0});
     b3d_clear();
+
+    /* Cube face definitions */
+    static const b3d_tri_t cube_faces[12] = {
+        {
+            {
+                {-0.5, -0.5, -0.5},
+                {-0.5, 0.5, -0.5},
+                {0.5, 0.5, -0.5},
+            },
+        },
+        {
+            {
+                {-0.5, -0.5, -0.5},
+                {0.5, 0.5, -0.5},
+                {0.5, -0.5, -0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, -0.5},
+                {0.5, 0.5, -0.5},
+                {0.5, 0.5, 0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, -0.5},
+                {0.5, 0.5, 0.5},
+                {0.5, -0.5, 0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, 0.5},
+                {0.5, 0.5, 0.5},
+                {-0.5, 0.5, 0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, 0.5},
+                {-0.5, 0.5, 0.5},
+                {-0.5, -0.5, 0.5},
+            },
+        },
+        {
+            {
+                {-0.5, -0.5, 0.5},
+                {-0.5, 0.5, 0.5},
+                {-0.5, 0.5, -0.5},
+            },
+        },
+        {
+            {
+                {-0.5, -0.5, 0.5},
+                {-0.5, 0.5, -0.5},
+                {-0.5, -0.5, -0.5},
+            },
+        },
+        {
+            {
+                {-0.5, 0.5, -0.5},
+                {-0.5, 0.5, 0.5},
+                {0.5, 0.5, 0.5},
+            },
+        },
+        {
+            {
+                {-0.5, 0.5, -0.5},
+                {0.5, 0.5, 0.5},
+                {0.5, 0.5, -0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, 0.5},
+                {-0.5, -0.5, 0.5},
+                {-0.5, -0.5, -0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, 0.5},
+                {-0.5, -0.5, -0.5},
+                {0.5, -0.5, -0.5},
+            },
+        },
+    };
+    static const uint32_t cube_colors[12] = {
+        0xfcd0a1, 0xb1b695, 0x53917e, 0x63535b, 0x6d1a36, 0xd4e09b,
+        0xf6f4d2, 0xcbdfbd, 0xf19c79, 0xa44a3f, 0x5465ff, 0x788bff,
+    };
 
     for (int i = 0; i < cube_count; ++i) {
         b3d_reset();
@@ -72,24 +164,8 @@ static void render_cubes(uint32_t *pixels,
         b3d_translate(1, 1, fmodf(i * 0.1, 100));
         b3d_rotate_z(i + t);
 
-        b3d_triangle(-0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5,
-                     0xfcd0a1);
-        b3d_triangle(-0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5,
-                     0xb1b695);
-        b3d_triangle(0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0x53917e);
-        b3d_triangle(0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0x63535b);
-        b3d_triangle(0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0x6d1a36);
-        b3d_triangle(0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0xd4e09b);
-        b3d_triangle(-0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5,
-                     0xf6f4d2);
-        b3d_triangle(-0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5,
-                     0xcbdfbd);
-        b3d_triangle(-0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0xf19c79);
-        b3d_triangle(-0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0xa44a3f);
-        b3d_triangle(0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5,
-                     0x5465ff);
-        b3d_triangle(0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5,
-                     0x788bff);
+        for (int f = 0; f < 12; ++f)
+            b3d_triangle(&cube_faces[f], cube_colors[f]);
     }
 }
 
@@ -109,7 +185,8 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    // Set up SDL2 stuff, including whats needed to display a buffer of pixels.
+    /* Set up SDL2 stuff, including whats needed to display a buffer of pixels.
+     */
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Window *window = SDL_CreateWindow(
         "", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, 0);
@@ -121,7 +198,99 @@ int main(int argc, char **argv)
 
     b3d_init(pixel_buffer, depth_buffer, width, height, 60);
 
-    // For framerate counting.
+    /* Cube face definitions */
+    static const b3d_tri_t cube_faces[12] = {
+        {
+            {
+                {-0.5, -0.5, -0.5},
+                {-0.5, 0.5, -0.5},
+                {0.5, 0.5, -0.5},
+            },
+        },
+        {
+            {
+                {-0.5, -0.5, -0.5},
+                {0.5, 0.5, -0.5},
+                {0.5, -0.5, -0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, -0.5},
+                {0.5, 0.5, -0.5},
+                {0.5, 0.5, 0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, -0.5},
+                {0.5, 0.5, 0.5},
+                {0.5, -0.5, 0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, 0.5},
+                {0.5, 0.5, 0.5},
+                {-0.5, 0.5, 0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, 0.5},
+                {-0.5, 0.5, 0.5},
+                {-0.5, -0.5, 0.5},
+            },
+        },
+        {
+            {
+                {-0.5, -0.5, 0.5},
+                {-0.5, 0.5, 0.5},
+                {-0.5, 0.5, -0.5},
+            },
+        },
+        {
+            {
+                {-0.5, -0.5, 0.5},
+                {-0.5, 0.5, -0.5},
+                {-0.5, -0.5, -0.5},
+            },
+        },
+        {
+            {
+                {-0.5, 0.5, -0.5},
+                {-0.5, 0.5, 0.5},
+                {0.5, 0.5, 0.5},
+            },
+        },
+        {
+            {
+                {-0.5, 0.5, -0.5},
+                {0.5, 0.5, 0.5},
+                {0.5, 0.5, -0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, 0.5},
+                {-0.5, -0.5, 0.5},
+                {-0.5, -0.5, -0.5},
+            },
+        },
+        {
+            {
+                {0.5, -0.5, 0.5},
+                {-0.5, -0.5, -0.5},
+                {0.5, -0.5, -0.5},
+            },
+        },
+    };
+    static const uint32_t cube_colors[12] = {
+        0xfcd0a1, 0xb1b695, 0x53917e, 0x63535b, 0x6d1a36, 0xd4e09b,
+        0xf6f4d2, 0xcbdfbd, 0xf19c79, 0xa44a3f, 0x5465ff, 0x788bff,
+    };
+
+    /* For framerate counting */
     double freq = SDL_GetPerformanceFrequency();
     uint32_t next_update = 0;
 #define FPS_SAMPLES 100
@@ -131,7 +300,7 @@ int main(int argc, char **argv)
 
     int cube_count = 100;
 
-    b3d_set_camera(0, 0, -2, 0, 0, 0);
+    b3d_set_camera(&(b3d_camera_t) {0, 0, -2, 0, 0, 0});
 
     int quit = 0;
     while (!quit) {
@@ -149,13 +318,13 @@ int main(int argc, char **argv)
         if (quit)
             break;
 
-        // Current time in milliseconds.
+        /* Current time in milliseconds */
         float t = SDL_GetTicks() * 0.001f;
 
         b3d_clear();
 
         for (int i = 0; i < cube_count; ++i) {
-            // Reset transformations back to the origin.
+            /* Reset transformations back to the origin */
             b3d_reset();
 
             b3d_rotate_z(t);
@@ -166,40 +335,18 @@ int main(int argc, char **argv)
             b3d_translate(1, 1, fmodf(i * 0.1, 100));
             b3d_rotate_z(i + t);
 
-            b3d_triangle(-0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5,
-                         0xfcd0a1);
-            b3d_triangle(-0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5,
-                         0xb1b695);
-            b3d_triangle(0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5,
-                         0x53917e);
-            b3d_triangle(0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5,
-                         0x63535b);
-            b3d_triangle(0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5,
-                         0x6d1a36);
-            b3d_triangle(0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5,
-                         0xd4e09b);
-            b3d_triangle(-0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5,
-                         0xf6f4d2);
-            b3d_triangle(-0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5,
-                         0xcbdfbd);
-            b3d_triangle(-0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
-                         0xf19c79);
-            b3d_triangle(-0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5,
-                         0xa44a3f);
-            b3d_triangle(0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5,
-                         0x5465ff);
-            b3d_triangle(0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5,
-                         0x788bff);
+            for (int f = 0; f < 12; ++f)
+                b3d_triangle(&cube_faces[f], cube_colors[f]);
         }
 
-        // Display the pixel buffer on screen (using a streaming texture).
+        /* Display the pixel buffer on screen (using a streaming texture) */
         SDL_RenderClear(renderer);
         SDL_UpdateTexture(texture, NULL, pixel_buffer,
                           width * sizeof(uint32_t));
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
 
-        // Display the average framerate in the window title.
+        /* Display the average framerate in the window title */
         if (SDL_GetTicks() > next_update && have_enough_samples) {
             char title[32];
             float fps = 0;

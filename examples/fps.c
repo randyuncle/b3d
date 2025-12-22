@@ -67,17 +67,21 @@ int main(int argument_count, char **arguments)
                        1;
 
         b3d_clear();
-        b3d_set_camera(-1.0f, 1.0f, -3.0f, 1.0f, 0.0f, 0);
+        b3d_set_camera(&(b3d_camera_t) {-1.0f, 1.0f, -3.0f, 1.0f, 0.0f, 0});
 
         /* Draw checkerboard floor */
         b3d_reset();
         for (int z = -world_size; z < world_size; ++z) {
             for (int x = -world_size; x < world_size; ++x) {
                 uint32_t c = (x + z) & 1 ? 0x424C88 : 0xF7C396;
-                b3d_triangle(x + .5, 0.0, z + .5, x - .5, 0.0, z - .5, x - .5,
-                             0.0, z + .5, c);
-                b3d_triangle(x + .5, 0.0, z + .5, x + .5, 0.0, z - .5, x - .5,
-                             0.0, z - .5, c);
+                b3d_triangle(&(b3d_tri_t) {{{x + .5f, 0, z + .5f},
+                                            {x - .5f, 0, z - .5f},
+                                            {x - .5f, 0, z + .5f}}},
+                             c);
+                b3d_triangle(&(b3d_tri_t) {{{x + .5f, 0, z + .5f},
+                                            {x + .5f, 0, z - .5f},
+                                            {x - .5f, 0, z - .5f}}},
+                             c);
             }
         }
 
@@ -93,14 +97,142 @@ int main(int argument_count, char **arguments)
             for (int i = 0; i < mesh.vertex_count; i += 9) {
                 uint32_t r = 200 + (int) (RND * 50);
                 uint32_t g = 150 + (int) (RND * 50);
-                uint32_t b = 50 + (int) (RND * 50);
-                b3d_triangle(mesh.triangles[i + 0], mesh.triangles[i + 1],
-                             mesh.triangles[i + 2], mesh.triangles[i + 3],
-                             mesh.triangles[i + 4], mesh.triangles[i + 5],
-                             mesh.triangles[i + 6], mesh.triangles[i + 7],
-                             mesh.triangles[i + 8], (r << 16 | g << 8 | b));
+                uint32_t bv = 50 + (int) (RND * 50);
+                b3d_triangle(
+                    &(b3d_tri_t) {
+                        {{mesh.triangles[i + 0], mesh.triangles[i + 1],
+                          mesh.triangles[i + 2]},
+                         {mesh.triangles[i + 3], mesh.triangles[i + 4],
+                          mesh.triangles[i + 5]},
+                         {mesh.triangles[i + 6], mesh.triangles[i + 7],
+                          mesh.triangles[i + 8]}}},
+                    (r << 16 | g << 8 | bv));
             }
         }
+
+        /* Cube and pyramid geometry */
+        static const b3d_tri_t cube_faces[12] = {
+            {
+                {
+                    {-0.5, -0.5, -0.5},
+                    {-0.5, 0.5, -0.5},
+                    {0.5, 0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {-0.5, -0.5, -0.5},
+                    {0.5, 0.5, -0.5},
+                    {0.5, -0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, -0.5},
+                    {0.5, 0.5, -0.5},
+                    {0.5, 0.5, 0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, -0.5},
+                    {0.5, 0.5, 0.5},
+                    {0.5, -0.5, 0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, 0.5},
+                    {0.5, 0.5, 0.5},
+                    {-0.5, 0.5, 0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, 0.5},
+                    {-0.5, 0.5, 0.5},
+                    {-0.5, -0.5, 0.5},
+                },
+            },
+            {
+                {
+                    {-0.5, -0.5, 0.5},
+                    {-0.5, 0.5, 0.5},
+                    {-0.5, 0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {-0.5, -0.5, 0.5},
+                    {-0.5, 0.5, -0.5},
+                    {-0.5, -0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {-0.5, 0.5, -0.5},
+                    {-0.5, 0.5, 0.5},
+                    {0.5, 0.5, 0.5},
+                },
+            },
+            {
+                {
+                    {-0.5, 0.5, -0.5},
+                    {0.5, 0.5, 0.5},
+                    {0.5, 0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, 0.5},
+                    {-0.5, -0.5, 0.5},
+                    {-0.5, -0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, 0.5},
+                    {-0.5, -0.5, -0.5},
+                    {0.5, -0.5, -0.5},
+                },
+            },
+        };
+        static const uint32_t cube_colors[12] = {
+            0xfcd0a1, 0xb1b695, 0x53917e, 0x63535b, 0x6d1a36, 0xd4e09b,
+            0xf6f4d2, 0xcbdfbd, 0xf19c79, 0xa44a3f, 0x5465ff, 0x788bff,
+        };
+        static const b3d_tri_t pyramid_faces[4] = {
+            {
+                {
+                    {0.0, 2.0, 0.0},
+                    {-1.0, 0.0, 1.0},
+                    {1.0, 0.0, 1.0},
+                },
+            },
+            {
+                {
+                    {0.0, 2.0, 0.0},
+                    {1.0, 0.0, 1.0},
+                    {1.0, 0.0, -1.0},
+                },
+            },
+            {
+                {
+                    {0.0, 2.0, 0.0},
+                    {1.0, 0.0, -1.0},
+                    {-1.0, 0.0, -1.0},
+                },
+            },
+            {
+                {
+                    {0.0, 2.0, 0.0},
+                    {-1.0, 0.0, -1.0},
+                    {-1.0, 0.0, 1.0},
+                },
+            },
+        };
+        static const uint32_t pyramid_colors[4] = {0x004749, 0x00535a, 0x00746b,
+                                                   0x00945c};
 
         /* Draw border cubes */
         srand(seed);
@@ -127,30 +259,8 @@ int main(int argument_count, char **arguments)
                 b3d_rotate_z(RND * 3.14159f);
                 b3d_scale(1.0f + RND * 2, 1.0f + RND * 8, 1.0f + RND * 2);
                 b3d_translate(bx, 0.5, bz);
-                b3d_triangle(-0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5,
-                             0xfcd0a1);
-                b3d_triangle(-0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5,
-                             0xb1b695);
-                b3d_triangle(0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5,
-                             0x53917e);
-                b3d_triangle(0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5,
-                             0x63535b);
-                b3d_triangle(0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5,
-                             0x6d1a36);
-                b3d_triangle(0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5,
-                             0xd4e09b);
-                b3d_triangle(-0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5,
-                             0xf6f4d2);
-                b3d_triangle(-0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5,
-                             0xcbdfbd);
-                b3d_triangle(-0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
-                             0xf19c79);
-                b3d_triangle(-0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5,
-                             0xa44a3f);
-                b3d_triangle(0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5,
-                             0x5465ff);
-                b3d_triangle(0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5,
-                             0x788bff);
+                for (int f = 0; f < 12; ++f)
+                    b3d_triangle(&cube_faces[f], cube_colors[f]);
             }
         }
 
@@ -162,14 +272,8 @@ int main(int argument_count, char **arguments)
             b3d_rotate_y(RND * 3.14159f);
             b3d_translate((RND * world_size * 2) - world_size, 0,
                           (RND * world_size * 2) - world_size);
-            b3d_triangle(0.0, 2.0, 0.0, -1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
-                         0x004749);
-            b3d_triangle(0.0, 2.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, -1.0,
-                         0x00535a);
-            b3d_triangle(0.0, 2.0, 0.0, 1.0, 0.0, -1.0, -1.0, 0.0, -1.0,
-                         0x00746b);
-            b3d_triangle(0.0, 2.0, 0.0, -1.0, 0.0, -1.0, -1.0, 0.0, 1.0,
-                         0x00945c);
+            for (int f = 0; f < 4; ++f)
+                b3d_triangle(&pyramid_faces[f], pyramid_colors[f]);
         }
 
         write_png(snapshot, pixels, width, height);
@@ -281,18 +385,22 @@ int main(int argument_count, char **arguments)
         if (player_z > (world_size - boundary))
             player_z = world_size - boundary;
 
-        b3d_set_camera(player_x, player_height, player_z, player_yaw,
-                       player_pitch, 0);
+        b3d_set_camera(&(b3d_camera_t) {player_x, player_height, player_z,
+                                        player_yaw, player_pitch, 0});
 
         /* Draw a checkerboard floor */
         b3d_reset();
         for (int z = -world_size; z < world_size; ++z) {
             for (int x = -world_size; x < world_size; ++x) {
                 uint32_t c = (x + z) & 1 ? 0x424C88 : 0xF7C396;
-                b3d_triangle(x + .5, 0.0, z + .5, x - .5, 0.0, z - .5, x - .5,
-                             0.0, z + .5, c);
-                b3d_triangle(x + .5, 0.0, z + .5, x + .5, 0.0, z - .5, x - .5,
-                             0.0, z - .5, c);
+                b3d_triangle(&(b3d_tri_t) {{{x + .5f, 0, z + .5f},
+                                            {x - .5f, 0, z - .5f},
+                                            {x - .5f, 0, z + .5f}}},
+                             c);
+                b3d_triangle(&(b3d_tri_t) {{{x + .5f, 0, z + .5f},
+                                            {x + .5f, 0, z - .5f},
+                                            {x - .5f, 0, z - .5f}}},
+                             c);
             }
         }
 
@@ -320,15 +428,143 @@ int main(int argument_count, char **arguments)
                 for (int i = 0; i < mesh.vertex_count; i += 9) {
                     uint32_t r = 200 + (RND * 50);
                     uint32_t g = 150 + (RND * 50);
-                    uint32_t b = 50 + (RND * 50);
-                    b3d_triangle(mesh.triangles[i + 0], mesh.triangles[i + 1],
-                                 mesh.triangles[i + 2], mesh.triangles[i + 3],
-                                 mesh.triangles[i + 4], mesh.triangles[i + 5],
-                                 mesh.triangles[i + 6], mesh.triangles[i + 7],
-                                 mesh.triangles[i + 8], (r << 16 | g << 8 | b));
+                    uint32_t bv = 50 + (RND * 50);
+                    b3d_triangle(
+                        &(b3d_tri_t) {
+                            {{mesh.triangles[i + 0], mesh.triangles[i + 1],
+                              mesh.triangles[i + 2]},
+                             {mesh.triangles[i + 3], mesh.triangles[i + 4],
+                              mesh.triangles[i + 5]},
+                             {mesh.triangles[i + 6], mesh.triangles[i + 7],
+                              mesh.triangles[i + 8]}}},
+                        (r << 16 | g << 8 | bv));
                 }
             }
         }
+
+        /* Cube and pyramid geometry */
+        static const b3d_tri_t cube_faces[12] = {
+            {
+                {
+                    {-0.5, -0.5, -0.5},
+                    {-0.5, 0.5, -0.5},
+                    {0.5, 0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {-0.5, -0.5, -0.5},
+                    {0.5, 0.5, -0.5},
+                    {0.5, -0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, -0.5},
+                    {0.5, 0.5, -0.5},
+                    {0.5, 0.5, 0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, -0.5},
+                    {0.5, 0.5, 0.5},
+                    {0.5, -0.5, 0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, 0.5},
+                    {0.5, 0.5, 0.5},
+                    {-0.5, 0.5, 0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, 0.5},
+                    {-0.5, 0.5, 0.5},
+                    {-0.5, -0.5, 0.5},
+                },
+            },
+            {
+                {
+                    {-0.5, -0.5, 0.5},
+                    {-0.5, 0.5, 0.5},
+                    {-0.5, 0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {-0.5, -0.5, 0.5},
+                    {-0.5, 0.5, -0.5},
+                    {-0.5, -0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {-0.5, 0.5, -0.5},
+                    {-0.5, 0.5, 0.5},
+                    {0.5, 0.5, 0.5},
+                },
+            },
+            {
+                {
+                    {-0.5, 0.5, -0.5},
+                    {0.5, 0.5, 0.5},
+                    {0.5, 0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, 0.5},
+                    {-0.5, -0.5, 0.5},
+                    {-0.5, -0.5, -0.5},
+                },
+            },
+            {
+                {
+                    {0.5, -0.5, 0.5},
+                    {-0.5, -0.5, -0.5},
+                    {0.5, -0.5, -0.5},
+                },
+            },
+        };
+        static const uint32_t cube_colors[12] = {
+            0xfcd0a1, 0xb1b695, 0x53917e, 0x63535b, 0x6d1a36, 0xd4e09b,
+            0xf6f4d2, 0xcbdfbd, 0xf19c79, 0xa44a3f, 0x5465ff, 0x788bff,
+        };
+        static const b3d_tri_t pyramid_faces[4] = {
+            {
+                {
+                    {0.0, 2.0, 0.0},
+                    {-1.0, 0.0, 1.0},
+                    {1.0, 0.0, 1.0},
+                },
+            },
+            {
+                {
+                    {0.0, 2.0, 0.0},
+                    {1.0, 0.0, 1.0},
+                    {1.0, 0.0, -1.0},
+                },
+            },
+            {
+                {
+                    {0.0, 2.0, 0.0},
+                    {1.0, 0.0, -1.0},
+                    {-1.0, 0.0, -1.0},
+                },
+            },
+            {
+                {
+                    {0.0, 2.0, 0.0},
+                    {-1.0, 0.0, -1.0},
+                    {-1.0, 0.0, 1.0},
+                },
+            },
+        };
+        static const uint32_t pyramid_colors[4] = {0x004749, 0x00535a, 0x00746b,
+                                                   0x00945c};
 
         /* Make a jagged border around the world using stretched cubes */
         srand(seed);
@@ -355,30 +591,8 @@ int main(int argument_count, char **arguments)
                 b3d_rotate_z(RND * 3.14159f);
                 b3d_scale(1.0f + RND * 2, 1.0f + RND * 8, 1.0f + RND * 2);
                 b3d_translate(x, 0.5, z);
-                b3d_triangle(-0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5,
-                             0xfcd0a1);
-                b3d_triangle(-0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5,
-                             0xb1b695);
-                b3d_triangle(0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5,
-                             0x53917e);
-                b3d_triangle(0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5,
-                             0x63535b);
-                b3d_triangle(0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5,
-                             0x6d1a36);
-                b3d_triangle(0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5,
-                             0xd4e09b);
-                b3d_triangle(-0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5,
-                             0xf6f4d2);
-                b3d_triangle(-0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5,
-                             0xcbdfbd);
-                b3d_triangle(-0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
-                             0xf19c79);
-                b3d_triangle(-0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5,
-                             0xa44a3f);
-                b3d_triangle(0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5,
-                             0x5465ff);
-                b3d_triangle(0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5,
-                             0x788bff);
+                for (int f = 0; f < 12; ++f)
+                    b3d_triangle(&cube_faces[f], cube_colors[f]);
             }
         }
 
@@ -390,14 +604,8 @@ int main(int argument_count, char **arguments)
             b3d_rotate_y(RND * 3.14159f);
             b3d_translate((RND * world_size * 2) - world_size, 0,
                           (RND * world_size * 2) - world_size);
-            b3d_triangle(0.0, 2.0, 0.0, -1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
-                         0x004749);
-            b3d_triangle(0.0, 2.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, -1.0,
-                         0x00535a);
-            b3d_triangle(0.0, 2.0, 0.0, 1.0, 0.0, -1.0, -1.0, 0.0, -1.0,
-                         0x00746b);
-            b3d_triangle(0.0, 2.0, 0.0, -1.0, 0.0, -1.0, -1.0, 0.0, 1.0,
-                         0x00945c);
+            for (int f = 0; f < 4; ++f)
+                b3d_triangle(&pyramid_faces[f], pyramid_colors[f]);
         }
 
         /* Draw confetti-like random triangles if all heads have been found */
@@ -411,9 +619,11 @@ int main(int argument_count, char **arguments)
                               (RND * world_size * 2) - world_size);
                 float y = RND * head_confetti_y;
                 y = fmodf(y, 50);
-                b3d_triangle(RND - .5, RND - .5 + y, RND - .5, RND - .5,
-                             RND - .5 + y, RND - .5, RND - .5, RND - .5 + y,
-                             RND - .5, RND * 0xffffff);
+                b3d_triangle(
+                    &(b3d_tri_t) {{{RND - .5f, RND - .5f + y, RND - .5f},
+                                   {RND - .5f, RND - .5f + y, RND - .5f},
+                                   {RND - .5f, RND - .5f + y, RND - .5f}}},
+                    (uint32_t) (RND * 0xffffff));
             }
             head_confetti_y += 0.1f;
         }
@@ -424,22 +634,24 @@ int main(int argument_count, char **arguments)
         /* Draw some UI to show how many heads have been collected */
         for (int h = 0; h < 8; ++h) {
             b3d_reset();
-            b3d_set_camera(0, 0, 0, 0, 0, 0);
+            b3d_set_camera(&(b3d_camera_t) {0, 0, 0, 0, 0, 0});
             b3d_scale(.05, .05, .05);
             b3d_rotate_y(t);
             b3d_translate(h * .1 - .35, -.4 + sinf(h + t * 5) * 0.01, .5);
             srand(h);
             for (int i = 0; i < mesh.vertex_count; i += 9) {
-                uint32_t r = 200 + (RND * 50);
-                uint32_t g = 150 + (RND * 50);
-                uint32_t b = 50 + (RND * 50);
+                uint32_t r = 200 + (uint32_t) (RND * 50);
+                uint32_t g = 150 + (uint32_t) (RND * 50);
+                uint32_t bv = 50 + (uint32_t) (RND * 50);
                 b3d_triangle(
-                    mesh.triangles[i + 0], mesh.triangles[i + 1],
-                    mesh.triangles[i + 2], mesh.triangles[i + 3],
-                    mesh.triangles[i + 4], mesh.triangles[i + 5],
-                    mesh.triangles[i + 6], mesh.triangles[i + 7],
-                    mesh.triangles[i + 8],
-                    h < heads_found ? (r << 16 | g << 8 | b) : 0x444444);
+                    &(b3d_tri_t) {
+                        {{mesh.triangles[i + 0], mesh.triangles[i + 1],
+                          mesh.triangles[i + 2]},
+                         {mesh.triangles[i + 3], mesh.triangles[i + 4],
+                          mesh.triangles[i + 5]},
+                         {mesh.triangles[i + 6], mesh.triangles[i + 7],
+                          mesh.triangles[i + 8]}}},
+                    h < heads_found ? (r << 16 | g << 8 | bv) : 0x444444);
             }
         }
 
