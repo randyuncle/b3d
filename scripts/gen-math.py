@@ -2,16 +2,15 @@
 """
 B3D Math DSL Code Generator - I❤LA Style
 
-Generates C and LaTeX from mathematical notation.
+Generates C from mathematical notation.
 Supports both Unicode symbols (∑, ∈, θ) and LaTeX escapes (\\sum, \\in, \\theta).
 
 Usage:
     python3 scripts/gen-math.py --dsl src/math.dsl -o src/math-gen.inc
-    python3 scripts/gen-math.py --dsl src/math.dsl --latex docs/math.tex
 """
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Optional
 
@@ -25,19 +24,15 @@ class TokenType(Enum):
     # Literals
     IDENT = auto()
     NUMBER = auto()
-    STRING = auto()
 
     # Unicode math operators
     DOT = auto()  # · (middle dot)
     CROSS = auto()  # ×
     NORM_OPEN = auto()  # ‖
-    NORM_CLOSE = auto()  # ‖
     SQRT = auto()  # √
     SUM = auto()  # ∑
-    PROD = auto()  # ∏
     IN = auto()  # ∈
     TRANSPOSE = auto()  # ᵀ
-    INVERSE = auto()  # ⁻¹
 
     # Greek letters
     THETA = auto()  # θ
@@ -58,7 +53,6 @@ class TokenType(Enum):
     MINUS = auto()
     STAR = auto()
     SLASH = auto()
-    CARET = auto()
     EQ = auto()
     LT = auto()
     GT = auto()
@@ -113,7 +107,6 @@ UNICODE_MAP = {
     "‖": TokenType.NORM_OPEN,  # Context determines open/close
     "√": TokenType.SQRT,
     "∑": TokenType.SUM,
-    "∏": TokenType.PROD,
     "∈": TokenType.IN,
     "ᵀ": TokenType.TRANSPOSE,
     "θ": TokenType.THETA,
@@ -128,7 +121,6 @@ UNICODE_MAP = {
 LATEX_ESCAPES = {
     # Operators
     "sum": TokenType.SUM,
-    "prod": TokenType.PROD,
     "in": TokenType.IN,
     "cdot": TokenType.DOT,
     "dot": TokenType.DOT,
@@ -389,13 +381,25 @@ class Lexer:
                 )
                 continue
 
+            # Two-character comparison operators
+            if ch == "<" and self.peek(1) == "=":
+                self.advance()
+                self.advance()
+                self.tokens.append(Token(TokenType.LE, "<=", start_line, start_col))
+                continue
+
+            if ch == ">" and self.peek(1) == "=":
+                self.advance()
+                self.advance()
+                self.tokens.append(Token(TokenType.GE, ">=", start_line, start_col))
+                continue
+
             # Single-character operators
             simple = {
                 "+": TokenType.PLUS,
                 "-": TokenType.MINUS,
                 "*": TokenType.STAR,
                 "/": TokenType.SLASH,
-                "^": TokenType.CARET,
                 "=": TokenType.EQ,
                 "<": TokenType.LT,
                 ">": TokenType.GT,
@@ -1280,12 +1284,11 @@ class CodeGen:
                 return f"{base}.z"
             if idx in ("3", "3.0f"):
                 return f"{base}.w"
-            if idx in ("i", "j", "k"):
-                return f"{base}[{idx}]"
             # Component access
             if idx in ("x", "y", "z", "w"):
                 return f"{base}.{idx}"
-            return f"{base}.{idx}"
+            # Dynamic or unknown index - use bracket notation
+            return f"{base}[{idx}]"
 
         if isinstance(expr, MatrixIndexExpr):
             base = self.emit_expr(expr.base)
@@ -1474,137 +1477,6 @@ class CodeGen:
 
 
 # ==============================================================================
-# LaTeX Generator
-# ==============================================================================
-
-
-class LaTeXGen:
-    """Generate LaTeX from AST."""
-
-    def __init__(self):
-        pass
-
-    def emit_func(self, func: FuncDef) -> str:
-        params = ", ".join(p.name for p in func.params)
-        body = self.emit_expr(func.body)
-
-        latex = f"\\textbf{{{func.name}}}({params}) &= {body}\n"
-        return latex
-
-    def emit_expr(self, expr: Expr) -> str:
-        if isinstance(expr, NumExpr):
-            return expr.value
-
-        if isinstance(expr, VarExpr):
-            return self.emit_var(expr.name)
-
-        if isinstance(expr, BinOpExpr):
-            left = self.emit_expr(expr.left)
-            right = self.emit_expr(expr.right)
-            return self.emit_binop(expr.op, left, right)
-
-        if isinstance(expr, UnaryExpr):
-            operand = self.emit_expr(expr.operand)
-            if expr.op == "-":
-                return f"-{operand}"
-            if expr.op == "T":
-                return f"{operand}^T"
-            return f"{expr.op}({operand})"
-
-        if isinstance(expr, CallExpr):
-            args = [self.emit_expr(a) for a in expr.args]
-            return self.emit_call(expr.func, args)
-
-        if isinstance(expr, IndexExpr):
-            base = self.emit_expr(expr.base)
-            idx = self.emit_expr(expr.index)
-            return f"{base}_{{{idx}}}"
-
-        if isinstance(expr, MatrixIndexExpr):
-            base = self.emit_expr(expr.base)
-            row = self.emit_expr(expr.row)
-            col = self.emit_expr(expr.col)
-            return f"{base}_{{{row},{col}}}"
-
-        if isinstance(expr, DotAccessExpr):
-            base = self.emit_expr(expr.base)
-            return f"{base}.{expr.field}"
-
-        if isinstance(expr, SumExpr):
-            body = self.emit_expr(expr.body)
-            return f"\\sum_{{{expr.var} \\in {expr.range_expr}}} {body}"
-
-        if isinstance(expr, NormExpr):
-            operand = self.emit_expr(expr.operand)
-            return f"\\|{operand}\\|"
-
-        if isinstance(expr, VectorExpr):
-            elems = [self.emit_expr(e) for e in expr.elements]
-            return "\\begin{bmatrix}" + " \\\\ ".join(elems) + "\\end{bmatrix}"
-
-        if isinstance(expr, ComprehensionExpr):
-            body = self.emit_expr(expr.body)
-            return f"[{body} \\mid {expr.var} \\in {expr.range_expr}]"
-
-        if isinstance(expr, MatrixExpr):
-            rows = []
-            for row in expr.rows:
-                elems = [self.emit_expr(e) for e in row]
-                rows.append(" & ".join(elems))
-            return "\\begin{bmatrix}" + " \\\\ ".join(rows) + "\\end{bmatrix}"
-
-        if isinstance(expr, LetExpr):
-            bindings = []
-            for name, value in expr.bindings:
-                bindings.append(f"{name} = {self.emit_expr(value)}")
-            body = self.emit_expr(expr.body)
-            return f"\\text{{let }} {', '.join(bindings)} \\text{{ in }} {body}"
-
-        if isinstance(expr, IfExpr):
-            cond = self.emit_expr(expr.cond)
-            then = self.emit_expr(expr.then_expr)
-            else_ = self.emit_expr(expr.else_expr)
-            return f"\\begin{{cases}} {then} & \\text{{if }} {cond} \\\\ {else_} & \\text{{otherwise}} \\end{{cases}}"
-
-        return "?"
-
-    def emit_var(self, name: str) -> str:
-        greek = {
-            "theta": "\\theta",
-            "pi": "\\pi",
-            "epsilon": "\\epsilon",
-            "delta": "\\delta",
-            "PI": "\\pi",
-            "EPSILON": "\\epsilon",
-        }
-        if name in greek:
-            return greek[name]
-        if len(name) == 1:
-            return name
-        return f"\\text{{{name}}}"
-
-    def emit_binop(self, op: str, left: str, right: str) -> str:
-        if op == "dot":
-            return f"{left} \\cdot {right}"
-        if op == "cross":
-            return f"{left} \\times {right}"
-        if op == "/":
-            return f"\\frac{{{left}}}{{{right}}}"
-        if op == "*":
-            return f"{left} \\cdot {right}"
-        return f"{left} {op} {right}"
-
-    def emit_call(self, func: str, args: list[str]) -> str:
-        if func == "sqrt":
-            return f"\\sqrt{{{args[0]}}}"
-        if func in ("sin", "cos", "tan"):
-            return f"\\{func}({args[0]})"
-        if func == "abs":
-            return f"|{args[0]}|"
-        return f"\\text{{{func}}}({', '.join(args)})"
-
-
-# ==============================================================================
 # Main
 # ==============================================================================
 
@@ -1629,38 +1501,12 @@ def generate_c(funcs: list[FuncDef], mode: Mode, suffix: str = "") -> str:
     return "\n".join(lines)
 
 
-def generate_latex(funcs: list[FuncDef]) -> str:
-    """Generate LaTeX documentation."""
-    lines = []
-
-    lines.append("% Auto-generated from math.dsl")
-    lines.append("\\documentclass{article}")
-    lines.append("\\usepackage{amsmath}")
-    lines.append("\\begin{document}")
-    lines.append("")
-    lines.append("\\section{B3D Math Functions}")
-    lines.append("")
-    lines.append("\\begin{align*}")
-
-    gen = LaTeXGen()
-    for func in funcs:
-        lines.append(gen.emit_func(func))
-
-    lines.append("\\end{align*}")
-    lines.append("\\end{document}")
-
-    return "\n".join(lines)
-
-
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Generate C/LaTeX from I❤LA-style math DSL"
-    )
+    parser = argparse.ArgumentParser(description="Generate C from I❤LA-style math DSL")
     parser.add_argument("--dsl", default="src/math.dsl", help="DSL source file")
     parser.add_argument("-o", "--output", help="C output file")
-    parser.add_argument("--latex", help="LaTeX output file")
     parser.add_argument("--suffix", default="", help="Function name suffix")
     parser.add_argument(
         "--mode",
@@ -1695,24 +1541,14 @@ def main():
             )
 
     # Generate C
+    mode = Mode.FLOAT if args.mode == "float" else Mode.FIXED
+    output = generate_c(funcs, mode, args.suffix)
+
     if args.output:
-        mode = Mode.FLOAT if args.mode == "float" else Mode.FIXED
-        output = generate_c(funcs, mode, args.suffix)
         with open(args.output, "w") as f:
             f.write(output)
-        print(f"Generated: {args.output}")
-
-    # Generate LaTeX
-    if args.latex:
-        output = generate_latex(funcs)
-        with open(args.latex, "w") as f:
-            f.write(output)
-        print(f"Generated: {args.latex}")
-
-    # Print to stdout if no output specified
-    if not args.output and not args.latex:
-        mode = Mode.FLOAT if args.mode == "float" else Mode.FIXED
-        print(generate_c(funcs, mode, args.suffix))
+    else:
+        print(output)
 
 
 if __name__ == "__main__":
