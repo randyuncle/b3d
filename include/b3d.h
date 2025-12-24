@@ -151,7 +151,8 @@ void b3d_set_model_matrix(const float m[16]);
  */
 void b3d_set_camera(const b3d_camera_t *cam);
 
-/* Point camera at target position (uses current camera position)
+/* Point camera at target position (uses current camera position).
+ * Note: Updates view matrix but invalidates yaw/pitch/roll in b3d_get_camera.
  * @x, @y, @z: target position to look at
  */
 void b3d_look_at(float x, float y, float z);
@@ -160,6 +161,24 @@ void b3d_look_at(float x, float y, float z);
  * @fov_in_degrees: field of view angle in degrees
  */
 void b3d_set_fov(float fov_in_degrees);
+
+/* Get current camera parameters
+ * @out: output camera parameters (position and orientation)
+ */
+void b3d_get_camera(b3d_camera_t *out);
+
+/* Get current field of view in degrees */
+float b3d_get_fov(void);
+
+/* Get current view matrix (row-major 4x4)
+ * @out: output array of 16 floats
+ */
+void b3d_get_view_matrix(float out[16]);
+
+/* Get current projection matrix (row-major 4x4)
+ * @out: output array of 16 floats
+ */
+void b3d_get_proj_matrix(float out[16]);
 
 /* Rendering */
 
@@ -186,5 +205,16 @@ bool b3d_to_screen(float x, float y, float z, int *sx, int *sy);
  * Returns number of triangles dropped since last clear.
  */
 size_t b3d_get_clip_drop_count(void);
+
+/* State query functions */
+
+/* Check if renderer is initialized and ready */
+bool b3d_is_initialized(void);
+
+/* Get current framebuffer width in pixels */
+int b3d_get_width(void);
+
+/* Get current framebuffer height in pixels */
+int b3d_get_height(void);
 
 #endif /* B3D_H */

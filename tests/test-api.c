@@ -230,20 +230,112 @@ TEST(api_camera)
     b3d_init(pixels, depth, width, height, 65.0f);
     b3d_clear();
 
-    /* Test b3d_set_camera */
-    b3d_set_camera(&(b3d_camera_t) {1.0f, 2.0f, 3.0f, 0.1f, 0.2f, 0.3f});
-    /* Just verify that the function doesn't crash and sets internal state */
+    /* Test b3d_set_camera and b3d_get_camera roundtrip */
+    b3d_camera_t cam_in = {1.0f, 2.0f, 3.0f, 0.1f, 0.2f, 0.3f};
+    b3d_set_camera(&cam_in);
 
-    /* Test b3d_look_at */
-    b3d_look_at(5.0f, 6.0f, 7.0f);
-    /* Just verify that the function doesn't crash */
+    b3d_camera_t cam_out;
+    b3d_get_camera(&cam_out);
 
-    /* Test b3d_set_fov */
+    /* Verify all fields match exactly */
+    ASSERT(fabsf(cam_out.x - cam_in.x) < 0.0001f);
+    ASSERT(fabsf(cam_out.y - cam_in.y) < 0.0001f);
+    ASSERT(fabsf(cam_out.z - cam_in.z) < 0.0001f);
+    ASSERT(fabsf(cam_out.yaw - cam_in.yaw) < 0.0001f);
+    ASSERT(fabsf(cam_out.pitch - cam_in.pitch) < 0.0001f);
+    ASSERT(fabsf(cam_out.roll - cam_in.roll) < 0.0001f);
+
+    /* Test b3d_set_fov and b3d_get_fov roundtrip */
     b3d_set_fov(90.0f);
-    /* Just verify that the function doesn't crash */
+    float fov = b3d_get_fov();
+    ASSERT(fabsf(fov - 90.0f) < 0.0001f);
+
+    /* Test b3d_look_at (note: invalidates camera orientation) */
+    b3d_look_at(5.0f, 6.0f, 7.0f);
+    /* Position should remain unchanged, orientation becomes stale */
+    b3d_get_camera(&cam_out);
+    ASSERT(fabsf(cam_out.x - cam_in.x) < 0.0001f);
+    ASSERT(fabsf(cam_out.y - cam_in.y) < 0.0001f);
+    ASSERT(fabsf(cam_out.z - cam_in.z) < 0.0001f);
+
+    /* Test b3d_get_view_matrix returns valid data */
+    float view[16];
+    b3d_get_view_matrix(view);
+    /* View matrix should be non-zero (not identity after look_at) */
+    int non_zero = 0;
+    for (int i = 0; i < 16; i++) {
+        if (fabsf(view[i]) > 0.0001f)
+            non_zero++;
+    }
+    ASSERT(non_zero > 0);
+
+    /* Test b3d_get_proj_matrix returns valid data */
+    float proj[16];
+    b3d_get_proj_matrix(proj);
+    /* Projection matrix should have non-zero elements */
+    non_zero = 0;
+    for (int i = 0; i < 16; i++) {
+        if (fabsf(proj[i]) > 0.0001f)
+            non_zero++;
+    }
+    ASSERT(non_zero > 0);
 
     free(pixels);
     free(depth);
+    return 1;
+}
+
+/* Test state query APIs */
+TEST(api_state_queries)
+{
+    const int width = 64, height = 48;
+    uint32_t *pixels =
+        malloc((size_t) width * (size_t) height * sizeof(uint32_t));
+    b3d_depth_t *depth =
+        malloc((size_t) width * (size_t) height * sizeof(b3d_depth_t));
+
+    ASSERT(pixels);
+    ASSERT(depth);
+
+    /* Test b3d_is_initialized before init */
+    /* Note: After a failed init, state is cleared, so this depends on prior
+     * state */
+
+    /* Initialize and verify state */
+    bool init_ok = b3d_init(pixels, depth, width, height, 75.0f);
+    ASSERT(init_ok);
+
+    /* Test b3d_is_initialized after successful init */
+    ASSERT(b3d_is_initialized() == true);
+
+    /* Test b3d_get_width and b3d_get_height */
+    ASSERT(b3d_get_width() == width);
+    ASSERT(b3d_get_height() == height);
+
+    /* Test b3d_get_fov returns init value */
+    float fov = b3d_get_fov();
+    ASSERT(fabsf(fov - 75.0f) < 0.0001f);
+
+    /* Test after re-init with different dimensions */
+    const int width2 = 128, height2 = 96;
+    uint32_t *pixels2 =
+        malloc((size_t) width2 * (size_t) height2 * sizeof(uint32_t));
+    b3d_depth_t *depth2 =
+        malloc((size_t) width2 * (size_t) height2 * sizeof(b3d_depth_t));
+
+    ASSERT(pixels2);
+    ASSERT(depth2);
+
+    init_ok = b3d_init(pixels2, depth2, width2, height2, 60.0f);
+    ASSERT(init_ok);
+    ASSERT(b3d_get_width() == width2);
+    ASSERT(b3d_get_height() == height2);
+    ASSERT(fabsf(b3d_get_fov() - 60.0f) < 0.0001f);
+
+    free(pixels);
+    free(depth);
+    free(pixels2);
+    free(depth2);
     return 1;
 }
 
@@ -862,6 +954,10 @@ int main(void)
 
     SECTION_BEGIN("API Camera");
     RUN_TEST(api_camera);
+    SECTION_END();
+
+    SECTION_BEGIN("API State Queries");
+    RUN_TEST(api_state_queries);
     SECTION_END();
 
     SECTION_BEGIN("API Matrix Stack");

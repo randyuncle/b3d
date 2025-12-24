@@ -16,6 +16,8 @@ b3d_depth_t *b3d_depth;
 
 static b3d_mat_t b3d_model, b3d_view, b3d_proj;
 static b3d_vec_t b3d_camera;
+static b3d_camera_t b3d_camera_params; /* Full camera state for queries */
+static float b3d_fov_degrees;          /* Current FOV for queries */
 
 /* Matrix stack for push/pop operations */
 static b3d_mat_t b3d_matrix_stack[B3D_MATRIX_STACK_SIZE];
@@ -487,6 +489,7 @@ void b3d_set_fov(float fov_in_degrees)
     if (b3d_width <= 0 || b3d_height <= 0)
         return;
 
+    b3d_fov_degrees = fov_in_degrees;
     b3d_proj = b3d_mat_proj(fov_in_degrees, b3d_height / (float) b3d_width,
                             B3D_NEAR_DISTANCE, B3D_FAR_DISTANCE);
 }
@@ -496,6 +499,7 @@ void b3d_set_camera(const b3d_camera_t *cam)
     if (!cam)
         return;
 
+    b3d_camera_params = *cam;
     b3d_camera = (b3d_vec_t) {cam->x, cam->y, cam->z, 1};
     b3d_vec_t up = {0, 1, 0, 1};
     b3d_vec_t target = {0, 0, 1, 1};
@@ -563,6 +567,7 @@ bool b3d_init(uint32_t *pixel_buffer,
     b3d_depth = depth_buffer;
     b3d_matrix_stack_top = 0;
     b3d_model_view_dirty = true;
+    b3d_fov_degrees = fov;
     b3d_update_screen_planes();
     b3d_clear();
     b3d_reset();
@@ -652,4 +657,54 @@ void b3d_set_model_matrix(const float m[16])
 size_t b3d_get_clip_drop_count(void)
 {
     return b3d_clip_drop_count;
+}
+
+void b3d_get_camera(b3d_camera_t *out)
+{
+    if (!out)
+        return;
+    *out = b3d_camera_params;
+}
+
+float b3d_get_fov(void)
+{
+    return b3d_fov_degrees;
+}
+
+void b3d_get_view_matrix(float out[16])
+{
+    if (!out)
+        return;
+
+    for (int r = 0; r < 4; ++r) {
+        for (int c = 0; c < 4; ++c)
+            out[r * 4 + c] = b3d_view.m[r][c];
+    }
+}
+
+void b3d_get_proj_matrix(float out[16])
+{
+    if (!out)
+        return;
+
+    for (int r = 0; r < 4; ++r) {
+        for (int c = 0; c < 4; ++c)
+            out[r * 4 + c] = b3d_proj.m[r][c];
+    }
+}
+
+bool b3d_is_initialized(void)
+{
+    return b3d_pixels != NULL && b3d_depth != NULL && b3d_width > 0 &&
+           b3d_height > 0;
+}
+
+int b3d_get_width(void)
+{
+    return b3d_width;
+}
+
+int b3d_get_height(void)
+{
+    return b3d_height;
 }
