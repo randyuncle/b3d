@@ -63,12 +63,17 @@ tests/test-perf: tests/test-perf.c $(LIB_DEPS) $(LIB_OBJ)
 	$(VECHO) "  CC\t$@"
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) $< $(LIB_OBJ) -o $@ $(LIBS)
 
+# Check examples use b3d-math.h wrappers (not raw math.h functions)
+check-math-usage:
+	$(VECHO) "  CHECK\tVerifying examples use b3d-math.h"
+	$(Q)python3 scripts/check-math-usage.py
+
 # Run unit tests
-check: $(TESTS)
+check: check-math-usage $(TESTS)
 	$(VECHO) "  TEST\tRunning unit tests"
 	$(Q)set -e; for t in $(TESTS); do $$t; done
 	@echo ""
-	@echo "All unit tests passed"
+	@echo "All tests passed"
 
 # Run benchmarks
 bench: $(BENCHMARKS)
@@ -104,4 +109,4 @@ update-snapshots: $(ALL_EXAMPLES)
 	$(VECHO) "  GEN\tGenerating snapshots"
 	$(Q)./scripts/gen-snapshots.sh $(SDL2_EXAMPLES_ALL)
 
-.PHONY: all clean cleanall rebuild config check bench test-all generate check-gen update-snapshots $(BUILD_TARGETS) $(RUN_TARGETS)
+.PHONY: all clean cleanall rebuild config check check-math-usage bench test-all generate check-gen update-snapshots $(BUILD_TARGETS) $(RUN_TARGETS)

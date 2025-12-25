@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "b3d-math.h"
 #include "b3d.h"
 #include "utils.h"
 
@@ -18,8 +19,8 @@ static float height_at(int x, int z, float t)
 {
     float fx = (float) x * 0.3f;
     float fz = (float) z * 0.25f;
-    return sinf(fx * 0.6f + t * 0.7f) * 0.6f +
-           cosf(fz * 0.5f + t * 1.1f) * 0.4f;
+    return b3d_sinf(fx * 0.6f + t * 0.7f) * 0.6f +
+           b3d_cosf(fz * 0.5f + t * 1.1f) * 0.4f;
 }
 
 static uint32_t height_color(float h)

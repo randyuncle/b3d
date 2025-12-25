@@ -106,45 +106,112 @@ typedef b3d_fixed_t b3d_scalar_t;
 /* Fixed-point constants */
 #define B3D_FP_PI ((b3d_fixed_t) ((355LL << B3D_FP_BITS) / 113))
 #define B3D_FP_PI_HALF (B3D_FP_PI >> 1)
+#define B3D_FP_3PI_HALF (B3D_FP_PI + B3D_FP_PI_HALF)
 #define B3D_FP_2PI (B3D_FP_PI << 1)
 #define B3D_FP_PI_SQ \
     ((b3d_fixed_t) (((int64_t) B3D_FP_PI * B3D_FP_PI) >> B3D_FP_BITS))
 
-/* Bhaskara I sine: sin(x) ≈ 16x(π-x) / (5π² - 4x(π-x)), ~0.3% max error */
-static inline b3d_fixed_t b3d_fp_sin(b3d_fixed_t x)
+/* Bhaskara I kernel for x in [0, π], returns positive sine approximation */
+static inline b3d_fixed_t b3d_fp_sin_core(b3d_fixed_t x)
 {
-    int sign = 1;
-
-    /* Handle negative angles - guard against INT32_MIN overflow */
-    if (x < 0) {
-        if (x == INT32_MIN)
-            x = INT32_MAX; /* Clamp to avoid overflow on negation */
-        else
-            x = -x;
-        sign = -sign;
-    }
-
-    /* Fast modulo reduction using int64_t (avoids slow loop for large angles)
-     */
-    if (x >= B3D_FP_2PI) {
-        int64_t x64 = (int64_t) x % (int64_t) B3D_FP_2PI;
-        x = (b3d_fixed_t) x64;
-    }
-
-    /* Map (π, 2π) to (0, π) with sign flip */
-    if (x > B3D_FP_PI) {
-        x -= B3D_FP_PI;
-        sign = -sign;
-    }
-
-    /* Bhaskara I approximation with precomputed pi² */
     b3d_fixed_t xp = B3D_FP_MUL(x, B3D_FP_PI - x);
     b3d_fixed_t denom = 5 * B3D_FP_PI_SQ - 4 * xp;
 
     if (denom == 0)
         return 0;
 
-    return sign * B3D_FP_DIV(16 * xp, denom);
+    return B3D_FP_DIV(16 * xp, denom);
+}
+
+/* Bhaskara I sine: sin(x) ≈ 16x(π-x) / (5π² - 4x(π-x)), ~0.3% max error */
+static inline b3d_fixed_t b3d_fp_sin(b3d_fixed_t x)
+{
+    int sign = 1;
+    int64_t x64 = x;
+
+    /* Handle negative angles - guard against INT32_MIN overflow */
+    if (x64 < 0) {
+        if (x64 == INT32_MIN)
+            x64 = INT32_MAX; /* Clamp to avoid overflow on negation */
+        else
+            x64 = -x64;
+        sign = -sign;
+    }
+
+    /* Fast modulo reduction using int64_t (avoids slow loop for large angles)
+     */
+    if (x64 >= B3D_FP_2PI) {
+        x64 %= (int64_t) B3D_FP_2PI;
+    }
+
+    /* Map (π, 2π) to (0, π) with sign flip */
+    b3d_fixed_t angle = (b3d_fixed_t) x64;
+    if (angle > B3D_FP_PI) {
+        angle -= B3D_FP_PI;
+        sign = -sign;
+    }
+
+    return sign * b3d_fp_sin_core(angle);
+}
+
+/* Compute sine and cosine together to share reduction work */
+static inline void b3d_fp_sincos(b3d_fixed_t x,
+                                 b3d_fixed_t *sinp,
+                                 b3d_fixed_t *cosp)
+{
+    int sin_sign = 1;
+    int64_t x64 = x;
+
+    if (x64 < 0) {
+        if (x64 == INT32_MIN)
+            x64 = INT32_MAX;
+        else
+            x64 = -x64;
+        sin_sign = -1;
+    }
+
+    if (x64 >= B3D_FP_2PI)
+        x64 %= (int64_t) B3D_FP_2PI;
+
+    b3d_fixed_t angle = (b3d_fixed_t) x64;
+
+    /* Sine */
+    b3d_fixed_t sin_angle = angle;
+    if (sin_angle > B3D_FP_PI) {
+        sin_angle -= B3D_FP_PI;
+        sin_sign = -sin_sign;
+    }
+    b3d_fixed_t sin_val = b3d_fp_sin_core(sin_angle);
+    if (sinp)
+        *sinp = (sin_sign == 1) ? sin_val : -sin_val;
+
+    /* Cosine via quadrant mapping to [0, π/2] */
+    int quadrant = (int) (x64 / (int64_t) B3D_FP_PI_HALF);
+    b3d_fixed_t cos_angle;
+    int cos_sign;
+
+    switch (quadrant) {
+    case 0:
+        cos_angle = B3D_FP_PI_HALF - angle;
+        cos_sign = 1;
+        break;
+    case 1:
+        cos_angle = angle - B3D_FP_PI_HALF;
+        cos_sign = -1;
+        break;
+    case 2:
+        cos_angle = B3D_FP_3PI_HALF - angle;
+        cos_sign = -1;
+        break;
+    default:
+        cos_angle = angle - B3D_FP_3PI_HALF;
+        cos_sign = 1;
+        break;
+    }
+
+    b3d_fixed_t cos_val = b3d_fp_sin_core(cos_angle);
+    if (cosp)
+        *cosp = (cos_sign == 1) ? cos_val : -cos_val;
 }
 
 static inline b3d_fixed_t b3d_fp_cos(b3d_fixed_t x)
@@ -196,6 +263,82 @@ static inline b3d_fixed_t b3d_fp_abs(b3d_fixed_t x)
 }
 
 #endif /* B3D_FLOAT_POINT */
+
+/*
+ * Float-based math wrappers for public API and examples.
+ * These provide a unified interface regardless of internal fixed/float mode.
+ * Define guard to prevent redefinition if b3d.h is included later.
+ */
+#ifndef B3D_MATH_UTILS_DEFINED
+#define B3D_MATH_UTILS_DEFINED
+
+static inline float b3d_sinf(float x)
+{
+#ifdef B3D_FLOAT_POINT
+    return sinf(x);
+#else
+    return B3D_FP_TO_FLOAT(b3d_fp_sin(B3D_FLOAT_TO_FP(x)));
+#endif
+}
+
+static inline float b3d_cosf(float x)
+{
+#ifdef B3D_FLOAT_POINT
+    return cosf(x);
+#else
+    return B3D_FP_TO_FLOAT(b3d_fp_cos(B3D_FLOAT_TO_FP(x)));
+#endif
+}
+
+static inline float b3d_sqrtf(float x)
+{
+#ifdef B3D_FLOAT_POINT
+    return x <= 0.0f ? 0.0f : sqrtf(x);
+#else
+    return B3D_FP_TO_FLOAT(b3d_fp_sqrt(B3D_FLOAT_TO_FP(x)));
+#endif
+}
+
+static inline float b3d_fabsf(float x)
+{
+#ifdef B3D_FLOAT_POINT
+    return fabsf(x);
+#else
+    return x < 0.0f ? -x : x;
+#endif
+}
+
+static inline float b3d_tanf(float x)
+{
+#ifdef B3D_FLOAT_POINT
+    return tanf(x);
+#else
+    float c = b3d_cosf(x);
+    return (c < 1e-7f && c > -1e-7f) ? 0.0f : b3d_sinf(x) / c;
+#endif
+}
+
+/* Compute sine and cosine simultaneously (more efficient than separate calls)
+ */
+static inline void b3d_sincosf(float x, float *sinp, float *cosp)
+{
+#ifdef B3D_FLOAT_POINT
+#if defined(__GLIBC__) && defined(_GNU_SOURCE)
+    sincosf(x, sinp, cosp);
+#else
+    *sinp = sinf(x);
+    *cosp = cosf(x);
+#endif
+#else
+    b3d_scalar_t angle = B3D_FLOAT_TO_FP(x);
+    b3d_fixed_t sin_fp, cos_fp;
+    b3d_fp_sincos(angle, &sin_fp, &cos_fp);
+    *sinp = B3D_FP_TO_FLOAT(sin_fp);
+    *cosp = B3D_FP_TO_FLOAT(cos_fp);
+#endif
+}
+
+#endif /* B3D_MATH_UTILS_DEFINED */
 
 /*
  * Constants

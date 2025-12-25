@@ -1385,33 +1385,20 @@ class CodeGen:
         return result
 
     def emit_call(self, func: str, args: list[str]) -> str:
-        # Math functions
-        if self.mode == Mode.FLOAT:
-            builtins = {
-                "sqrt": lambda a: f"sqrtf({a[0]})",
-                "sin": lambda a: f"sinf({a[0]})",
-                "cos": lambda a: f"cosf({a[0]})",
-                "tan": lambda a: f"tanf({a[0]})",
-                "abs": lambda a: f"fabsf({a[0]})",
-                "floor": lambda a: f"floorf({a[0]})",
-                "min": lambda a: f"fminf({a[0]}, {a[1]})",
-                "max": lambda a: f"fmaxf({a[0]}, {a[1]})",
-                "clamp": lambda a: f"fminf(fmaxf({a[0]}, {a[1]}), {a[2]})",
-                "kronecker": lambda a: f"(({a[0]}) == ({a[1]}) ? 1.0f : 0.0f)",
-            }
-        else:
-            builtins = {
-                "sqrt": lambda a: f"b3d_fp_sqrt({a[0]})",
-                "sin": lambda a: f"b3d_fp_sin({a[0]})",
-                "cos": lambda a: f"b3d_fp_cos({a[0]})",
-                "tan": lambda a: f"b3d_fp_tan({a[0]})",
-                "abs": lambda a: f"b3d_fp_abs({a[0]})",
-                "floor": lambda a: f"B3D_FP_FLOOR({a[0]})",
-                "min": lambda a: f"B3D_FP_MIN({a[0]}, {a[1]})",
-                "max": lambda a: f"B3D_FP_MAX({a[0]}, {a[1]})",
-                "clamp": lambda a: f"B3D_FP_MIN(B3D_FP_MAX({a[0]}, {a[1]}), {a[2]})",
-                "kronecker": lambda a: f"(({a[0]}) == ({a[1]}) ? B3D_FP_ONE : 0)",
-            }
+        # Math functions - use b3d_* wrappers for unified fixed/float support
+        # These wrappers are defined in math-toolkit.h and work regardless of mode
+        builtins = {
+            "sqrt": lambda a: f"b3d_sqrtf({a[0]})",
+            "sin": lambda a: f"b3d_sinf({a[0]})",
+            "cos": lambda a: f"b3d_cosf({a[0]})",
+            "tan": lambda a: f"b3d_tanf({a[0]})",
+            "abs": lambda a: f"b3d_fabsf({a[0]})",
+            "floor": lambda a: f"floorf({a[0]})",
+            "min": lambda a: f"fminf({a[0]}, {a[1]})",
+            "max": lambda a: f"fmaxf({a[0]}, {a[1]})",
+            "clamp": lambda a: f"fminf(fmaxf({a[0]}, {a[1]}), {a[2]})",
+            "kronecker": lambda a: f"(({a[0]}) == ({a[1]}) ? 1.0f : 0.0f)",
+        }
 
         if func in builtins:
             return builtins[func](args)

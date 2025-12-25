@@ -15,6 +15,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "b3d-math.h"
 #include "b3d.h"
 #include "b3d_obj.h"
 #include "utils.h"
@@ -92,7 +93,7 @@ int main(int argument_count, char **arguments)
             b3d_reset();
             b3d_rotate_y(h + t * 3);
             b3d_scale(0.4, 0.4, 0.4);
-            b3d_translate(hx, 0.4 + sinf(h + t * 3) * 0.1, hz);
+            b3d_translate(hx, 0.4 + b3d_sinf(h + t * 3) * 0.1, hz);
             srand(h);
             for (int i = 0; i < mesh.vertex_count; i += 9) {
                 uint32_t r = 200 + (int) (RND * 50);
@@ -368,10 +369,13 @@ int main(int argument_count, char **arguments)
         if (right)
             player_strafe_speed = -0.1f;
         player_height += ((crouch ? 0.5f : 1.0f) - player_height) * 0.1f;
-        player_x -= cosf(player_yaw - 1.570796f) * player_forward_speed;
-        player_z -= sinf(player_yaw - 1.570796f) * player_forward_speed;
-        player_x -= cosf(player_yaw) * player_strafe_speed;
-        player_z -= sinf(player_yaw) * player_strafe_speed;
+        float sin_fwd, cos_fwd, sin_str, cos_str;
+        b3d_sincosf(player_yaw - 1.570796f, &sin_fwd, &cos_fwd);
+        b3d_sincosf(player_yaw, &sin_str, &cos_str);
+        player_x -= cos_fwd * player_forward_speed;
+        player_z -= sin_fwd * player_forward_speed;
+        player_x -= cos_str * player_strafe_speed;
+        player_z -= sin_str * player_strafe_speed;
         player_forward_speed *= 0.9f;
         player_strafe_speed *= 0.9f;
 
@@ -409,8 +413,8 @@ int main(int argument_count, char **arguments)
             float x = heads[h];
             float z = heads[h + 1];
             /* If the player is close to a head, mark it as found using NAN */
-            if (fabsf(player_x - x) < head_radius &&
-                fabsf(player_z - z) < head_radius) {
+            if (b3d_fabsf(player_x - x) < head_radius &&
+                b3d_fabsf(player_z - z) < head_radius) {
                 heads[h] = NAN;
                 heads[h + 1] = NAN;
                 ++heads_found;
@@ -423,7 +427,7 @@ int main(int argument_count, char **arguments)
                 b3d_reset();
                 b3d_rotate_y(h + t * 3);
                 b3d_scale(0.4, 0.4, 0.4);
-                b3d_translate(x, 0.4 + sinf(h + t * 3) * .1, z);
+                b3d_translate(x, 0.4 + b3d_sinf(h + t * 3) * .1, z);
                 srand(h);
                 for (int i = 0; i < mesh.vertex_count; i += 9) {
                     uint32_t r = 200 + (RND * 50);
@@ -637,7 +641,7 @@ int main(int argument_count, char **arguments)
             b3d_set_camera(&(b3d_camera_t) {0, 0, 0, 0, 0, 0});
             b3d_scale(.05, .05, .05);
             b3d_rotate_y(t);
-            b3d_translate(h * .1 - .35, -.4 + sinf(h + t * 5) * 0.01, .5);
+            b3d_translate(h * .1 - .35, -.4 + b3d_sinf(h + t * 5) * 0.01, .5);
             srand(h);
             for (int i = 0; i < mesh.vertex_count; i += 9) {
                 uint32_t r = 200 + (uint32_t) (RND * 50);

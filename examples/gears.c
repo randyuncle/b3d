@@ -6,10 +6,10 @@
  */
 
 #include <SDL.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "b3d-math.h"
 #include "b3d.h"
 #include "utils.h"
 
@@ -31,7 +31,7 @@ static const float light_dir[3] = {0.408248f, 0.408248f, 0.816497f};
 static uint32_t shade(uint32_t base_color, float nx, float ny, float nz)
 {
     /* Normalize normal */
-    float nl = sqrtf(nx * nx + ny * ny + nz * nz);
+    float nl = b3d_sqrtf(nx * nx + ny * ny + nz * nz);
     if (nl > 0) {
         nx /= nl;
         ny /= nl;
@@ -84,16 +84,12 @@ static void gear(float inner_radius,
     for (int i = 0; i < teeth; i++) {
         float angle = (float) i * 2.0f * M_PI / (float) teeth;
 
-        float c0 = cosf(angle);
-        float s0 = sinf(angle);
-        float c1 = cosf(angle + 1.0f * da);
-        float s1 = sinf(angle + 1.0f * da);
-        float c2 = cosf(angle + 2.0f * da);
-        float s2 = sinf(angle + 2.0f * da);
-        float c3 = cosf(angle + 3.0f * da);
-        float s3 = sinf(angle + 3.0f * da);
-        float c4 = cosf(angle + 4.0f * da);
-        float s4 = sinf(angle + 4.0f * da);
+        float s0, c0, s1, c1, s2, c2, s3, c3, s4, c4;
+        b3d_sincosf(angle, &s0, &c0);
+        b3d_sincosf(angle + 1.0f * da, &s1, &c1);
+        b3d_sincosf(angle + 2.0f * da, &s2, &c2);
+        b3d_sincosf(angle + 3.0f * da, &s3, &c3);
+        b3d_sincosf(angle + 4.0f * da, &s4, &c4);
 
         /* Ring sections (four per tooth, mirroring glxgears quad strip) */
         float cs[] = {c0, c1, c2, c3};
@@ -135,16 +131,12 @@ static void gear(float inner_radius,
     for (int i = 0; i < teeth; i++) {
         float angle = (float) i * 2.0f * M_PI / (float) teeth;
 
-        float c0 = cosf(angle);
-        float s0 = sinf(angle);
-        float c1 = cosf(angle + 1.0f * da);
-        float s1 = sinf(angle + 1.0f * da);
-        float c2 = cosf(angle + 2.0f * da);
-        float s2 = sinf(angle + 2.0f * da);
-        float c3 = cosf(angle + 3.0f * da);
-        float s3 = sinf(angle + 3.0f * da);
-        float c4 = cosf(angle + 4.0f * da);
-        float s4 = sinf(angle + 4.0f * da);
+        float s0, c0, s1, c1, s2, c2, s3, c3, s4, c4;
+        b3d_sincosf(angle, &s0, &c0);
+        b3d_sincosf(angle + 1.0f * da, &s1, &c1);
+        b3d_sincosf(angle + 2.0f * da, &s2, &c2);
+        b3d_sincosf(angle + 3.0f * da, &s3, &c3);
+        b3d_sincosf(angle + 4.0f * da, &s4, &c4);
 
         /* Back face triangles - reverse winding */
         float cs[] = {c1, c2, c3, c4};
@@ -185,16 +177,12 @@ static void gear(float inner_radius,
     for (int i = 0; i < teeth; i++) {
         float angle = (float) i * 2.0f * M_PI / (float) teeth;
 
-        float c0 = cosf(angle);
-        float s0 = sinf(angle);
-        float c1 = cosf(angle + 1.0f * da);
-        float s1 = sinf(angle + 1.0f * da);
-        float c2 = cosf(angle + 2.0f * da);
-        float s2 = sinf(angle + 2.0f * da);
-        float c3 = cosf(angle + 3.0f * da);
-        float s3 = sinf(angle + 3.0f * da);
-        float c4 = cosf(angle + 4.0f * da);
-        float s4 = sinf(angle + 4.0f * da);
+        float s0, c0, s1, c1, s2, c2, s3, c3, s4, c4;
+        b3d_sincosf(angle, &s0, &c0);
+        b3d_sincosf(angle + 1.0f * da, &s1, &c1);
+        b3d_sincosf(angle + 2.0f * da, &s2, &c2);
+        b3d_sincosf(angle + 3.0f * da, &s3, &c3);
+        b3d_sincosf(angle + 4.0f * da, &s4, &c4);
 
         float hw = width * 0.5f;
         float u, v, len;
@@ -202,7 +190,7 @@ static void gear(float inner_radius,
         /* Leading edge of tooth */
         u = r2 * c1 - r1 * c0;
         v = r2 * s1 - r1 * s0;
-        len = sqrtf(u * u + v * v);
+        len = b3d_sqrtf(u * u + v * v);
         if (len > 0.0f) {
             uint32_t edge_color = shade(color, v / len, -u / len, 0.0f);
             b3d_triangle(&(b3d_tri_t) {{
@@ -220,8 +208,9 @@ static void gear(float inner_radius,
         }
 
         /* Tooth top face */
-        uint32_t top_color = shade(color, cosf(angle + 1.5f * da),
-                                   sinf(angle + 1.5f * da), 0.0f);
+        float s_top, c_top;
+        b3d_sincosf(angle + 1.5f * da, &s_top, &c_top);
+        uint32_t top_color = shade(color, c_top, s_top, 0.0f);
         b3d_triangle(&(b3d_tri_t) {{{r2 * c1, r2 * s1, hw},
                                     {r2 * c1, r2 * s1, -hw},
                                     {r2 * c2, r2 * s2, -hw}}},
@@ -234,7 +223,7 @@ static void gear(float inner_radius,
         /* Trailing edge of tooth */
         u = r1 * c3 - r2 * c2;
         v = r1 * s3 - r2 * s2;
-        len = sqrtf(u * u + v * v);
+        len = b3d_sqrtf(u * u + v * v);
         if (len > 0.0f) {
             uint32_t edge_color = shade(color, v / len, -u / len, 0.0f);
             b3d_triangle(&(b3d_tri_t) {{
@@ -252,8 +241,9 @@ static void gear(float inner_radius,
         }
 
         /* Valley between teeth (outer rim at r1) */
-        uint32_t rim_color = shade(color, cosf(angle + 3.5f * da),
-                                   sinf(angle + 3.5f * da), 0.0f);
+        float s_rim, c_rim;
+        b3d_sincosf(angle + 3.5f * da, &s_rim, &c_rim);
+        uint32_t rim_color = shade(color, c_rim, s_rim, 0.0f);
         b3d_triangle(&(b3d_tri_t) {{
                          {r1 * c3, r1 * s3, hw},
                          {r1 * c3, r1 * s3, -hw},
@@ -274,14 +264,15 @@ static void gear(float inner_radius,
         float a0 = (float) i * 2.0f * M_PI / (float) segs;
         float a1 = (float) (i + 1) * 2.0f * M_PI / (float) segs;
 
-        float c0 = cosf(a0), s0 = sinf(a0);
-        float c1 = cosf(a1), s1 = sinf(a1);
+        float s0, c0, s1, c1;
+        b3d_sincosf(a0, &s0, &c0);
+        b3d_sincosf(a1, &s1, &c1);
         float hw = width * 0.5f;
 
         /* Normal points inward */
         float nx = -(c0 + c1);
         float ny = -(s0 + s1);
-        float nl = sqrtf(nx * nx + ny * ny);
+        float nl = b3d_sqrtf(nx * nx + ny * ny);
         if (nl > 0.0f) {
             nx /= nl;
             ny /= nl;

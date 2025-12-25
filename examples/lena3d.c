@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "b3d-math.h"
 #include "b3d.h"
 #include "utils.h"
 
@@ -408,9 +409,10 @@ static uint32_t sample_trilinear(const mipmap_t *mip,
 /* Build 4x4 model matrix from rotation and translation */
 static void build_model_matrix(float out[16], float rx, float ry, float rz)
 {
-    float cx = cosf(rx), sx = sinf(rx);
-    float cy = cosf(ry), sy = sinf(ry);
-    float cz = cosf(rz), sz = sinf(rz);
+    float sx, cx, sy, cy, sz, cz;
+    b3d_sincosf(rx, &sx, &cx);
+    b3d_sincosf(ry, &sy, &cy);
+    b3d_sincosf(rz, &sz, &cz);
 
     /* Row-major, row-vector convention: v' = v * M */
     out[0] = cy * cz;
@@ -434,7 +436,7 @@ static void build_model_matrix(float out[16], float rx, float ry, float rz)
 /* Build view matrix for camera at eye looking at origin */
 static void build_view_matrix(float out[16], float ex, float ey, float ez)
 {
-    float len = sqrtf(ex * ex + ey * ey + ez * ez);
+    float len = b3d_sqrtf(ex * ex + ey * ey + ez * ez);
     if (len < 1e-6f)
         len = 1e-6f;
     float fz_x = -ex / len, fz_y = -ey / len, fz_z = -ez / len;
@@ -443,7 +445,7 @@ static void build_view_matrix(float out[16], float ex, float ey, float ez)
     float fx_x = up_y * fz_z - up_z * fz_y;
     float fx_y = up_z * fz_x - up_x * fz_z;
     float fx_z = up_x * fz_y - up_y * fz_x;
-    len = sqrtf(fx_x * fx_x + fx_y * fx_y + fx_z * fx_z);
+    len = b3d_sqrtf(fx_x * fx_x + fx_y * fx_y + fx_z * fx_z);
     if (len < 1e-6f)
         len = 1e-6f;
     fx_x /= len;
@@ -482,7 +484,7 @@ static void build_proj_matrix(float out[16],
                               float far_z)
 {
     float fov_rad = fov_deg * 3.14159265f / 180.0f;
-    float f = 1.0f / tanf(fov_rad * 0.5f);
+    float f = 1.0f / b3d_tanf(fov_rad * 0.5f);
 
     memset(out, 0, 16 * sizeof(float));
     out[0] = f / aspect;
@@ -554,7 +556,7 @@ static void rasterize_triangle(uint32_t *pixels,
     float dx20 = x2 - x0, dy20 = y2 - y0;
 
     float area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
-    if (fabsf(area) < 1e-6f)
+    if (b3d_fabsf(area) < 1e-6f)
         return;
     float inv_area = 1.0f / area;
 
@@ -625,8 +627,8 @@ static void rasterize_triangle(uint32_t *pixels,
                 dvdy *= tex_h;
 
                 /* LOD from max texel footprint */
-                float len_x = sqrtf(dudx * dudx + dvdx * dvdx);
-                float len_y = sqrtf(dudy * dudy + dvdy * dvdy);
+                float len_x = b3d_sqrtf(dudx * dudx + dvdx * dvdx);
+                float len_y = b3d_sqrtf(dudy * dudy + dvdy * dvdy);
                 float max_len = len_x > len_y ? len_x : len_y;
                 float lod = max_len > 0 ? log2f(max_len) : 0;
 

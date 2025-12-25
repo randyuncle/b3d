@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "b3d-math.h"
 #include "b3d.h"
 #include "utils.h"
 
@@ -59,20 +60,22 @@ static void render_frame(uint32_t *pixels,
     const float du = (2.0f * 3.14159265f) / segU;
     const float dv = (2.0f * 3.14159265f) / segV;
     float lx = 0.3f, ly = 0.8f, lz = -0.6f;
-    float llen = sqrtf(lx * lx + ly * ly + lz * lz);
+    float llen = b3d_sqrtf(lx * lx + ly * ly + lz * lz);
     if (llen > 0.0f)
         lx /= llen, ly /= llen, lz /= llen;
 
     for (int iu = 0; iu < segU; ++iu) {
         float u0 = iu * du;
         float u1 = (iu + 1) * du;
-        float cu0 = cosf(u0), su0 = sinf(u0);
-        float cu1 = cosf(u1), su1 = sinf(u1);
+        float su0, cu0, su1, cu1;
+        b3d_sincosf(u0, &su0, &cu0);
+        b3d_sincosf(u1, &su1, &cu1);
         for (int iv = 0; iv < segV; ++iv) {
             float v0 = iv * dv;
             float v1 = (iv + 1) * dv;
-            float cv0 = cosf(v0), sv0 = sinf(v0);
-            float cv1 = cosf(v1), sv1 = sinf(v1);
+            float sv0, cv0, sv1, cv1;
+            b3d_sincosf(v0, &sv0, &cv0);
+            b3d_sincosf(v1, &sv1, &cv1);
 
             /* Four corners of the quad */
             float x00 = (R + r * cv0) * cu0;
@@ -124,14 +127,18 @@ static void render_frame(uint32_t *pixels,
             uint32_t c0 = shade_color(dot0);
             uint32_t c1 = shade_color(dot1);
 
-            b3d_triangle(
-                &(b3d_tri_t) {
-                    {{x00, y00, z00}, {x10, y10, z10}, {x11, y11, z11}}},
-                c0);
-            b3d_triangle(
-                &(b3d_tri_t) {
-                    {{x00, y00, z00}, {x11, y11, z11}, {x01, y01, z01}}},
-                c1);
+            b3d_triangle(&(b3d_tri_t) {{
+                             {x00, y00, z00},
+                             {x10, y10, z10},
+                             {x11, y11, z11},
+                         }},
+                         c0);
+            b3d_triangle(&(b3d_tri_t) {{
+                             {x00, y00, z00},
+                             {x11, y11, z11},
+                             {x01, y01, z01},
+                         }},
+                         c1);
         }
     }
 }
